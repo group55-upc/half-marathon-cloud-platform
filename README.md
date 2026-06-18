@@ -19,11 +19,11 @@ El objetivo del proyecto es construir una aplicación web que permita buscar med
 - Opcional: Amazon Bedrock para bot IA
 
 ## Estructura del repositorio
-- frontend/                 # Aplicación web React
-- backend/                  # API Node.js + Express
-- database/                 # Scripts SQL y modelo de datos
-- infrastructure/terraform/ # Infraestructura AWS con Terraform
-- kubernetes/               # Manifests Kubernetes para EKS
-- lambdas/                  # Funciones Lambda opcionales
-- docs/                     # Documentación del proyecto
-- .github/workflows/        # Pipelines CI/CD opcionales
+- `frontend/` - Aplicación web React
+- `backend/` - API Node.js + Express
+- `database/` - Scripts SQL y modelo de datos
+- `infrastructure/terraform/` - Infraestructura AWS con Terraform
+- `kubernetes/` - Manifests Kubernetes para EKS
+- `lambdas/` - Funciones Lambda opcionales
+- `docs/` - Documentación del proyecto
+- `.github/workflows/` - Pipelines CI/CD opcionales
