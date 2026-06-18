@@ -28,6 +28,3 @@ Docker
 El backend se empaquetará con Docker usando:
 backend/Dockerfile
 
-Commit:
-```text
-Add backend folder
