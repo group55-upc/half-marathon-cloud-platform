@@ -22,4 +22,5 @@ El frontend llamará a la API mediante la variable:
 ```text
 VITE_API_URL
 
-<img width="961" height="721" alt="image" src="https://github.com/user-attachments/assets/9455395a-5855-4987-b9ba-38c49a5f6297" />
+Ejemplo:
+  GET /races?city=Barcelona
