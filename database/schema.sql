@@ -1,0 +1,27 @@
+CREATE TABLE races (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    race_date DATE NOT NULL,
+    distance DECIMAL(6,3) NOT NULL DEFAULT 21.097,
+    official_url TEXT,
+    route_file TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE favorites (
+    user_id INTEGER NOT NULL,
+    race_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, race_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (race_id) REFERENCES races(id) ON DELETE CASCADE
+);
