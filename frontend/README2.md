@@ -103,7 +103,7 @@ Ejecuta npm start para encender el servidor. Verás el mensaje Server listening 
 Para probarlo, puedes usar las mismas líneas de comandos curl que el desarrollador dejó escritas como ejemplo al final de su archivo server.js.
 
 
-## Context pel Frontend
+# Context pel Frontend
 
 Primer de tot he creat un directori de treball pel Frontend:
 ***$HOME/posgrado_tfp/Frontend***
