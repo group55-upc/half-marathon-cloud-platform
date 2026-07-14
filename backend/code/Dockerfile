@@ -1,10 +1,14 @@
 FROM node:24.16-alpine
 
-WORKDIR /backend
+WORKDIR /api
 
-ADD package.json server.js db.js /backend/
+COPY package*.json /api/
+
 RUN npm install
 
+COPY server.js db.js /api/
+
+USER node
 EXPOSE 5000
 
 CMD ["npm", "start"]

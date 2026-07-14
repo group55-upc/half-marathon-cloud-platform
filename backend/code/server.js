@@ -1,10 +1,10 @@
-require("dotenv").config();
+//require("dotenv").config();
 const express = require("express");
 const cors = require("cors");                   // <- tema de seguretat per limitar desde on es poden fer les crides a la API, de moment esta deactvitat 
 //const jwt = require("jsonwebtoken");             <- gestió de jwt per futurs usuaris
 //const cookieparser = require("cookie-parser");   <- això serveix per poder fer les cookies HttpOnly i tindre un millor xifrat, maxAge, etc
 
-const { connection, dbClient } = require('./db');
+const { dbClient } = require('./db');
 const { GetCommand, ScanCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
 const app = express();
@@ -28,7 +28,7 @@ app.get("/races", async (req, res) => {
       do {
         const { Items, LastEvaluatedKey } = await dbClient.send(new ScanCommand({
           TableName: "races",
-          ExclusiveStartKey: lastKey       // aixo es per si retorna mes de 1MB, que es veu de dynamo pot retornar 1MB per request
+          ExclusiveStartKey: lastKey       // aixo es per si retorna mes de 1MB, que es veu de dynamo pot retornar maxim 1MB per request
         }));
         races = races.concat(Items);
         lastKey = LastEvaluatedKey;
@@ -135,12 +135,20 @@ app.post("/races", async (req, res) => {
 //     "distance": 42
 //   }'
 
-app.get("/health", async (req, res) => {
+app.get("/connection", async (req, res) => {
     try  {
         const test = await dbClient.send(new ScanCommand({
             TableName: "races",
             Limit: 1
         }))
+        res.status(200).json({status: "ok"})
+    } catch (error) {
+        res.status(500).json({status: "error"})
+    }   
+});
+
+app.get("/", async (req, res) => {
+    try  {
         res.status(200).json({status: "ok"})
     } catch (error) {
         res.status(500).json({status: "error"})
