@@ -1,0 +1,44 @@
+<header class="app-header">
+  <div class="nav-container">
+    <a routerLink="/dashboard" class="logo-area">
+      <span class="logo-icon">🏃‍♂️</span>
+      <h1 class="app-title">RunTracker</h1>
+    </a>
+
+    <nav class="app-nav">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" id="nav-dashboard">
+        Dashboard
+      </a>
+      <a routerLink="/add-race" routerLinkActive="active" class="nav-link" id="nav-add-race">
+        Register Race
+      </a>
+    </nav>
+
+    <div class="api-status-area">
+      <button (click)="checkApiHealth()" class="status-badge" [class.online]="isBackendHealthy() === true" [class.offline]="isBackendHealthy() === false" [class.checking]="isBackendHealthy() === null" title="Click to refresh connection status">
+        <span class="status-dot"></span>
+        <span class="status-text">
+          @if (isBackendHealthy() === true) {
+            API Online
+          } @else if (isBackendHealthy() === false) {
+            API Offline
+          } @else {
+            Checking API...
+          }
+        </span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="app-main-content">
+  <div class="app-container">
+    <router-outlet></router-outlet>
+  </div>
+</main>
+
+<footer class="app-footer">
+  <div class="footer-container">
+    <p>&copy; 2026 RunTracker SPA. Connected to Node.js / DynamoDB Backend API.</p>
+  </div>
+</footer>

@@ -1,0 +1,21 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+backend-deployment.zip
+terraform.tfvars
+
+# SSH Keys
+*.pem
+*.key

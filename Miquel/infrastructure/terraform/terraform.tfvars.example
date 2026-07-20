@@ -1,0 +1,18 @@
+aws_region   = "us-east-1"
+project_name = "half-marathon"
+environment  = "dev"
+
+vpc_cidr           = "10.20.0.0/16"
+public_subnet_cidr = "10.20.1.0/24"
+
+instance_type = "t3.micro"
+backend_port  = 5000
+
+allowed_cidr = "YOUR_PUBLIC_IP/32"
+
+ec2_key_name     = "YOUR_KEY_NAME"
+private_key_path = "~/.ssh/half-marathon-key.pem"
+
+ec2_instance_profile_name = "LabInstanceProfile"
+
+backend_source_dir = "../../backend"
