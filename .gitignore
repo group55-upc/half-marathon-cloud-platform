@@ -1,7 +1,8 @@
 # Terraform
 .terraform/
 .terraform.lock.hcl
-*.tfstate.backup
+*.tfstate
+*.tfstate.*
 .plan
 
 # Nodejs
@@ -153,3 +154,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+
+# Archivos Pesados y Temporales
+*.zip
+*.tar.zip
+*.gz
