@@ -346,4 +346,3 @@ resource "aws_security_group" "sg-alb-ecs" {
 
   tags              = local.tags
 }
-

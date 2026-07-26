@@ -1,0 +1,159 @@
+<div class="dashboard-container">
+  <!-- Stats Section -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon total-races">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+          <path d="m374-168 106-106 106 106-56-162 136-90H500l-20-160-20 160H294l136 90-56 162Zm106-252Zm0-380q109 0 184.5 75.5T740-640q0 73-36.5 130T608-422q-10 7-16 17.5t-6 24.5v20q0 17-11.5 28.5T546-320h-12v-40q0-17-11.5-28.5T494-400h-28v-80h28q33 0 56.5-23.5T574-560v-40H386v40q0 33-23.5 56.5T306-480h-20v160h-56q-17 0-28.5-11.5T190-344v-20q0-14-6-24.5t-16-17.5q-59-31-95.5-88T36-640q0-109 75.5-184.5T196-900q80 0 144 43t86 117h108q22-74 86-117t144-43Z"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <h3>Total Races</h3>
+        <p class="stat-val">{{ stats().total }}</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon avg-distance">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+          <path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q121 0 216.5 72.5T824-620h-84q-27-77-94-128.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q77 0 144.5-44T716-320h84q-32 94-118 157T480-80Zm280-360v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <h3>Avg Distance</h3>
+        <p class="stat-val">{{ stats().avgDist }} <span class="unit">km</span></p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon top-country">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+          <path d="M200-120v-680h360l16 80h224v400H520l-16-80H280v280h-80Zm300-440Zm120 200h120v-240H516l-16-80H280v240h296l16 80Z"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <h3>Top Country</h3>
+        <p class="stat-val country-name">{{ stats().topCountry }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+        <path d="M784-120 532-372q-30 24-70.5 38t-81.5 14q-125 0-212.5-87.5T80-620q0-125 87.5-212.5T380-920q125 0 212.5 87.5T680-620q0 41-14 81.5T528-468l252 252-56 56ZM380-240q158 0 269-111t111-269q0-158-111-269T380-760q-158 0-269 111T0-620q0 158 111 269t269 111Z"/>
+      </svg>
+      <input 
+        type="text" 
+        placeholder="Search by name or city..." 
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        class="form-control filter-input"
+        id="search-input"
+      />
+    </div>
+
+    <div class="select-wrapper">
+      <select 
+        [ngModel]="filterCountry()" 
+        (ngModelChange)="filterCountry.set($event)"
+        class="form-control filter-select"
+        id="country-filter"
+      >
+        <option value="">All Countries</option>
+        @for (country of countries(); track country) {
+          <option [value]="country">{{ country }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="select-wrapper">
+      <select 
+        [ngModel]="filterDistance()" 
+        (ngModelChange)="filterDistance.set($event)"
+        class="form-control filter-select"
+        id="distance-filter"
+      >
+        <option value="">All Distances</option>
+        <option value="10">10k</option>
+        <option value="21">Half Marathon (21k)</option>
+        <option value="42">Marathon (42k)</option>
+        <option value="other">Other distances</option>
+      </select>
+    </div>
+
+    <button 
+      (click)="clearFilters()" 
+      class="btn btn-secondary clear-filters-btn" 
+      *ngIf="searchTerm() || filterCountry() || filterDistance()"
+      id="clear-filters-btn"
+    >
+      Clear Filters
+    </button>
+  </div>
+
+  <!-- Main Content Areas -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading races from backend...</p>
+  </div>
+
+  <div *ngIf="errorMsg()" class="error-state">
+    <svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 -960 960 960" width="40" fill="currentColor">
+      <path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+    </svg>
+    <p>{{ errorMsg() }}</p>
+    <button (click)="loadRaces()" class="btn btn-primary retry-btn">Retry Connection</button>
+  </div>
+
+  <div *ngIf="!isLoading() && !errorMsg()">
+    <div *ngIf="filteredRaces().length === 0" class="empty-state">
+      <div class="empty-icon">🏃‍♂️💨</div>
+      <h2>No Races Found</h2>
+      <p>Try adjusting your search criteria or register a new race.</p>
+      <a routerLink="/add-race" class="btn btn-primary go-add-btn" id="go-add-btn">Register New Race</a>
+    </div>
+
+    <!-- Race Grid -->
+    <div class="race-grid" *ngIf="filteredRaces().length > 0">
+      @for (race of filteredRaces(); track race.id) {
+        <div class="race-card">
+          <!-- Card Header Decoration -->
+          <div class="race-card-bg-glow"></div>
+          
+          <div class="race-card-header">
+            <span class="distance-badge" [class.badge-marathon]="race.distance >= 42" [class.badge-half]="race.distance >= 21 && race.distance < 42" [class.badge-10k]="race.distance < 21">
+              {{ race.distance }} km
+            </span>
+            <span class="race-date">
+              <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+                <path d="M200-80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z"/>
+              </svg>
+              {{ race.date | date:'mediumDate' }}
+            </span>
+          </div>
+
+          <div class="race-card-body">
+            <h2 class="race-name">{{ race.name }}</h2>
+            <div class="race-location">
+              <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor">
+                <path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-75.5-184.5T480-812q-109 0-184.5 75.5T220-552q0 71 59 162.5T480-186Zm0 106Q319-215 239.5-326T160-552q0-150 101-249t219-99q118 0 219 99t101 249q0 116-79.5 226T480-80Zm0-472Z"/>
+              </svg>
+              <span>{{ race.city }}, {{ race.country }}</span>
+            </div>
+          </div>
+
+          <div class="race-card-footer">
+            <a [href]="race.web" target="_blank" rel="noopener" class="btn btn-card-link" [id]="'web-link-' + race.id">
+              Visit Event
+              <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+                <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
