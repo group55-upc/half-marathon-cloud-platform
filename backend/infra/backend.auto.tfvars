@@ -1,1 +1,1 @@
-enable-ECS = false
+enable-ECS = true

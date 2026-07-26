@@ -10,7 +10,7 @@ const { GetCommand, ScanCommand, PutCommand } = require("@aws-sdk/lib-dynamodb")
 const app = express();
 const port = 5000;
 
-app.use(cors())
+app.use(cors());
 app.use(express.json());                            // dades en application/json
 app.use(express.urlencoded({ extended: true }));    //dades en application/x-www-form-urlencoded
 
