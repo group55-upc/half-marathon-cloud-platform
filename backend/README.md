@@ -219,14 +219,14 @@ styles.css
 styles-HL5IIE6S.css
 ```
 
-Repetirem el proces però seleccionanr Upload Folders. Penjarem les carpetes dintre de dist/Frontend/browser
+Repetirem el procés però seleccionant Upload Folders. Penjarem les carpetes dintre de dist/Frontend/browser
 
 ```
 app/
 images/
 ```
 
-Si accedim via navegador a la URL del S3 hauriem de veure la web
+Si accedim via navegador a la URL del S3 hauríem de veure la web
 
 
 *THE END*
