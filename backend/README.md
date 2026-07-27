@@ -8,7 +8,7 @@ Si voleu muntar tota la infraestructura: [clic aquí](#cloud)
 
 ## CLOUD
 
-Si voleu fer una prova amb tota la primera primeríssima versió del backend
+Muntar l'entorn de backend del cloud
 
 ### AWS / TERRAFORM - PART 1
 
@@ -27,13 +27,19 @@ export AWS_SECRET_ACCESS_KEY=[...]
 export AWS_SESSION_TOKEN=[...]
 ```
 
+Desactiva el desplegament del clúster ECS. Modificarem el fitxer backend.auto.tfvars
+
+```bash
+enable-ECS = false <- Ha d'estar a false
+```
+
 Terraform init
 
 ```bash
 terraform init
 ```
 
-Terraform apply per crear la xarxa bàsica, la dynamoDB i el ECR (Container Registry)
+Terraform apply per crear la xarxa bàsica, la dynamoDB i el ECR (Container Registry), de moment també crea el S3 on es situa el frontend
 
 ```bash
 terraform apply
@@ -45,14 +51,17 @@ Do you want to perform these actions?
   Enter a value: yes
 ```
 
-Agafem l'output que surt per CLI, és l'URL del ECR
+Agafem els output que surten per CLI, son l'URL del ECR (Registry), l'URL del Load Balancer i l'URL del S3 on es hosteja el frontend
 
 ```bash
 Outputs:
 
+alb-url = "lb-backend-1636057691.us-east-1.elb.amazonaws.com"
 registry-url = "305229890836.dkr.ecr.us-east-1.amazonaws.com/container-image-repository"
+s3-url = "marathon-cloudupc-website.s3-website-us-east-1.amazonaws.com"
 ```
 
+Avans de continuar amb el desplegament del clúster ECS, hem de pujar la imatge del contenidor al repositori
 
 ### CONSTRUIR LA IMATGE DEL CONTENIDOR
 
@@ -65,7 +74,7 @@ cd /half-marathon-cloud-platform/backend/code
 Crear la imatge
 
 ```bash
-docker build -t api -f Dockerfile .
+docker build -t marathon-backend -f Dockerfile .
 ```
 
 Mirem si s'ha creat correctament 
@@ -73,7 +82,7 @@ Mirem si s'ha creat correctament
 docker image list
 
 IMAGE                                                                                  ID             DISK USAGE   CONTENT SIZE   EXTRA
-api:latest                                                                             8a1dce03827f        456MB         96.7MB        
+marathon-backend:latest                                                                             8a1dce03827f        456MB         96.7MB        
 ```
 
 Guardem les credencials del registry en local, modifiqueu la URL per la que toqui del ECR (anterior output de terraform, sense cap path)
@@ -85,7 +94,7 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 Afegim la tag amb la URL del repositori a la imatge del contenidor
 
 ```bash
-docker tag api:latest 305229890836.dkr.ecr.us-east-1.amazonaws.com/container-image-repository:v1.0
+docker tag marathon-backend:latest 305229890836.dkr.ecr.us-east-1.amazonaws.com/container-image-repository:v1.0
 ```
 
 Pugem la imatge al repositori
@@ -135,21 +144,19 @@ Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 
 Amb això haurem creat el clúster ECS, la task i el service amb el contenidor del backend executant-se.
 
-Anem a AWS via web -> ECS -> Clusters -> half-marathon-cluster -> Tasks -> Fem clic a l'única que hi ha -> Networking -> Copiem la IP pública.
-
-Al navegador, podem buscar el següent (Modifiqueu amb la IP corresponent)
+Al navegador, podem fer consulter al backend a través de la URL del Application Load Balancer (Output de Terraform)
 
 ```bash
-http://<IP>:5000/   ->  status	"ok"
+http://lb-backend-1636057691.us-east-1.elb.amazonaws.com/   ->  status	"ok"
 ```
 
 ```bash
-http://<IP>:5000/connection   ->  status	"ok"
+http://lb-backend-1636057691.us-east-1.elb.amazonaws.com/connection   ->  status	"ok"
 ```
 Si executem el següent curl a la CLI i fem una cerca http al navegador
 
 ```bash
-curl -X POST http://<IP>:5000/races \
+curl -X POST http://lb-backend-1636057691.us-east-1.elb.amazonaws.com/races \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Madrid Marathon",
@@ -162,7 +169,7 @@ curl -X POST http://<IP>:5000/races \
 ```
 
 ```bash
-http://<IP>:5000/races
+http://lb-backend-1636057691.us-east-1.elb.amazonaws.com/races
 	
 0	
 city	"Madrid"
@@ -174,6 +181,54 @@ country	"Spain"
 name	"Madrid Marathon"
 
 ```
+
+Per desplegar el frontend seguirem el següents passos
+
+```bash
+cd /half-marathon-cloud-platform/frontend/code
+```
+
+Modificarem el service del frontend per apuntar al ALB
+
+```bash
+nano /src/app/services/race.service.ts
+
+...
+  private readonly apiUrl = 'http://lb-backend-1510711001.us-east-1.elb.amazonaws.com'; <- URL del ALB (Output de Terraform)
+...
+
+```
+
+Tornarem al directori arrel i compilarem el frontend. Es crearà un directori anomenat dist
+
+```bash
+cd /half-marathon-cloud-platform/frontend/code
+
+ng build
+```
+
+Al navegador, anirem a AWS -> bucket marathon-cloudupc-website -> Upload Files.
+
+Penjarem tots els fitxers dintre de dist/Frontend/browser
+
+```
+index.html
+main-NHVTZZDU.js
+main.ts
+styles.css
+styles-HL5IIE6S.css
+```
+
+Repetirem el proces però seleccionanr Upload Folders. Penjarem les carpetes dintre de dist/Frontend/browser
+
+```
+app/
+images/
+```
+
+Si accedim via navegador a la URL del S3 hauriem de veure la web
+
+
 *THE END*
 
 Per eliminar tot
