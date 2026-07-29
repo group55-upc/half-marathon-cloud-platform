@@ -22,7 +22,8 @@
             "assets": [
               {
                 "glob": "**/*",
-                "input": "src"
+                "input": "src/images",
+                "output": "images"
               }
             ],
             "styles": [

@@ -53,7 +53,7 @@ app.get("/races", async (req, res) => {
 
     Object.entries(params).forEach(([key, value]) => {
       paramNames[`#${key}`] = key;       // el # es pq utilitzi valor nostres i no metadates de la base de dades
-      paramValues[`:${key}`] = value; isNaN(value) ? value : Number(value);
+      paramValues[`:${key}`] = isNaN(value) ? value : Number(value);
       filter.push(`#${key} = :${key}`);
     });
 
