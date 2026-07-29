@@ -35,10 +35,14 @@ resource "aws_route_table_association" "public" {
   subnet_id             = aws_subnet.public[count.index].id  
 }
 
+# Una subred privada por zona de disponibilidad.
+# Con una sola subred, las dos tareas del servicio ECS acaban en la misma
+# zona y la redundancia solo protege del fallo de una tarea, no de una zona.
 resource "aws_subnet" "private" {
+  count                 = length(var.aws-availability-zones)
   vpc_id                = aws_vpc.vpc.id
-  availability_zone     = var.aws-availability-zones[0]
-  cidr_block            = cidrsubnet(aws_vpc.vpc.cidr_block, 8, 2)
+  availability_zone     = var.aws-availability-zones[count.index]
+  cidr_block            = cidrsubnet(aws_vpc.vpc.cidr_block, 8, count.index + 2)
   tags                  = local.tags
 }
 
@@ -48,7 +52,8 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "private" {
-  subnet_id             = aws_subnet.private.id
+  count                 = length(aws_subnet.private)
+  subnet_id             = aws_subnet.private[count.index].id
   route_table_id        = aws_route_table.private.id
 }
 
@@ -113,7 +118,7 @@ resource "aws_vpc_endpoint" "endpoint-ecr-api" {
   vpc_id              = aws_vpc.vpc.id
   service_name        = "com.amazonaws.us-east-1.ecr.api"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private.id]
+  subnet_ids          = aws_subnet.private[*].id
   security_group_ids  = [aws_security_group.sg-vpc-endpoints.id]
   private_dns_enabled = true
   tags                = local.tags
@@ -123,7 +128,7 @@ resource "aws_vpc_endpoint" "endpoint-ecr-dkr" {
   vpc_id              = aws_vpc.vpc.id
   service_name        = "com.amazonaws.us-east-1.ecr.dkr"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private.id]
+  subnet_ids          = aws_subnet.private[*].id
   security_group_ids  = [aws_security_group.sg-vpc-endpoints.id]
   private_dns_enabled = true
   tags                = local.tags
@@ -135,7 +140,7 @@ resource "aws_vpc_endpoint" "endpoint-logs" {
   vpc_id              = aws_vpc.vpc.id
   service_name        = "com.amazonaws.us-east-1.logs"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private.id]
+  subnet_ids          = aws_subnet.private[*].id
   security_group_ids  = [aws_security_group.sg-vpc-endpoints.id]
   private_dns_enabled = true
   tags                = local.tags
@@ -215,7 +220,7 @@ resource "aws_ecs_service" "ecs-service-one" {
 
   network_configuration {
     assign_public_ip  = false
-    subnets           = [aws_subnet.private.id]
+    subnets           = aws_subnet.private[*].id
     security_groups   = [aws_security_group.sg-ecs-service.id]
   }
 

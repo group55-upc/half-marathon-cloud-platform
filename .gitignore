@@ -7,7 +7,11 @@
 
 # Nodejs
 node_modules/
-package-lock.json
+
+# package-lock.json SÍ debe versionarse: fija las versiones exactas de las
+# dependencias y es lo que permite compilaciones reproducibles y el uso de
+# 'npm ci' en el pipeline de integración continua.
+# (regla anterior 'package-lock.json' retirada por ese motivo)
 
 
 
@@ -160,6 +164,10 @@ vite.config.ts.timestamp-*
 *.zip
 *.tar.zip
 *.gz
+
+# Archivos temporales de bloqueo de Microsoft Office
+# (se crean al abrir un .docx o .xlsx y no deben versionarse)
+~$*
 
 # Cache del compilador de Angular
 .angular/

@@ -13,7 +13,12 @@
 #   .\deploy.ps1 -SkipFrontend  Solo despliega backend e infraestructura
 #
 # Requisitos: AWS CLI, Terraform, Docker Desktop arrancado, Node.js,
-# y credenciales de AWS validas exportadas en esta sesion.
+# y credenciales de AWS validas (en ~/.aws/credentials o como variables).
+#
+# NOTA: no se usa $ErrorActionPreference = "Stop" a proposito. Docker,
+# terraform, npm y aws escriben avisos inofensivos por el canal de error,
+# y con "Stop" PowerShell los interpreta como fallos y aborta. En su lugar
+# se comprueba el codigo de salida ($LASTEXITCODE) despues de cada comando.
 
 [CmdletBinding()]
 param(
@@ -21,7 +26,7 @@ param(
     [switch]$SkipFrontend
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
 
 # --- utilidades de salida ---------------------------------------------------
@@ -31,15 +36,16 @@ function Write-Paso($texto) {
     $script:paso++
     Write-Host ""
     Write-Host "=== [$script:paso] $texto " -ForegroundColor Cyan -NoNewline
-    Write-Host ("=" * [Math]::Max(0, 60 - $texto.Length)) -ForegroundColor Cyan
+    Write-Host ("=" * [Math]::Max(0, 58 - $texto.Length)) -ForegroundColor Cyan
 }
-function Write-Ok($texto)     { Write-Host "    OK  $texto" -ForegroundColor Green }
-function Write-Info($texto)   { Write-Host "    --  $texto" -ForegroundColor Gray }
-function Write-Aviso($texto)  { Write-Host "    !   $texto" -ForegroundColor Yellow }
+function Write-Ok($texto)    { Write-Host "    OK  $texto" -ForegroundColor Green }
+function Write-Info($texto)  { Write-Host "    --  $texto" -ForegroundColor Gray }
+function Write-Aviso($texto) { Write-Host "    !   $texto" -ForegroundColor Yellow }
 
 function Abortar($texto) {
     Write-Host ""
     Write-Host "ABORTADO: $texto" -ForegroundColor Red
+    Write-Host "Nada de lo ya creado se ha destruido: puedes corregir y reintentar." -ForegroundColor Gray
     Write-Host ""
     exit 1
 }
@@ -57,8 +63,9 @@ foreach ($cmd in @("aws", "terraform", "docker", "npm")) {
     Write-Ok $cmd
 }
 
-# Docker tiene que estar arrancado, no solo instalado
-docker info 2>&1 | Out-Null
+# Docker tiene que estar arrancado, no solo instalado.
+# '*> $null' descarta TODOS los canales de salida, incluidos los avisos.
+docker info *> $null
 if ($LASTEXITCODE -ne 0) {
     Abortar "Docker esta instalado pero no responde. Arranca Docker Desktop y espera a que ponga 'Engine running'."
 }
@@ -68,11 +75,12 @@ Write-Ok "Docker Desktop respondiendo"
 
 Write-Paso "Comprobando credenciales de AWS"
 
-$identidad = aws sts get-caller-identity --output json 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Abortar "Las credenciales no son validas o han caducado. Copialas de nuevo del laboratorio de Vocareum."
+$identidad = aws sts get-caller-identity --output json 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $identidad) {
+    Abortar "Las credenciales no son validas o han caducado. Arranca el laboratorio y copialas de nuevo."
 }
-$cuenta = ($identidad | ConvertFrom-Json).Account
+try   { $cuenta = ($identidad | ConvertFrom-Json).Account }
+catch { $cuenta = "(desconocida)" }
 Write-Ok "Cuenta AWS $cuenta"
 
 # --- 3. infraestructura base (sin ECS) -------------------------------------
@@ -82,19 +90,28 @@ Write-Info "El cluster ECS se crea despues, cuando ya exista la imagen en ECR"
 
 Push-Location (Join-Path $root "backend\infra")
 try {
-    terraform init -input=false | Out-Null
-    if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'terraform init'." }
+    $logInit = terraform init -input=false 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $logInit | ForEach-Object { Write-Host $_ }
+        Abortar "Fallo 'terraform init'."
+    }
     Write-Ok "terraform init"
 
     terraform apply -auto-approve -input=false -var="enable-ECS=false"
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'terraform apply' de la fase base." }
     Write-Ok "Infraestructura base creada"
 
-    $registryUrl = (terraform output -raw registry-url).Trim()
-    $s3Url       = (terraform output -raw s3-url).Trim()
+    $registryUrl = (terraform output -raw registry-url 2>$null)
+    $s3Url       = (terraform output -raw s3-url 2>$null)
 }
 finally { Pop-Location }
 
+if (-not $registryUrl -or -not $s3Url) {
+    Abortar "No he podido leer los outputs de Terraform (registry-url / s3-url)."
+}
+
+$registryUrl  = $registryUrl.Trim()
+$s3Url        = $s3Url.Trim()
 $registryHost = $registryUrl.Split('/')[0]
 $bucket       = $s3Url.Split('.')[0]
 $imagen       = "${registryUrl}:v1.0"
@@ -112,11 +129,33 @@ try {
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'docker build'." }
     Write-Ok "Imagen construida"
 
-    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $registryHost
-    if ($LASTEXITCODE -ne 0) { Abortar "Fallo el login contra ECR." }
+    # Login contra ECR.
+    #
+    # OJO: NO usar la tuberia de PowerShell aqui:
+    #   aws ecr get-login-password | docker login --password-stdin ...
+    # PowerShell termina cada linea con \r\n. Docker quita el \n pero deja
+    # el \r pegado al final del token, ECR recibe una cabecera malformada
+    # y responde "400 Bad Request".
+    #
+    # Solucion: pasar el token como argumento, limpiando espacios en blanco.
+    $token = (aws ecr get-login-password --region us-east-1 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($token)) {
+        Abortar "No he podido obtener el token de ECR. Revisa las credenciales del laboratorio."
+    }
+
+    docker login --username AWS --password $token $registryHost
+    if ($LASTEXITCODE -ne 0) {
+        # Plan B: dejar que cmd.exe haga la tuberia, que pasa los bytes
+        # tal cual sin anadir saltos de linea.
+        Write-Aviso "El login directo ha fallado, probando con cmd.exe"
+        cmd /c "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $registryHost"
+        if ($LASTEXITCODE -ne 0) { Abortar "Fallo el login contra ECR por las dos vias." }
+    }
     Write-Ok "Autenticado en ECR"
 
     docker tag marathon-backend:latest $imagen
+    if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'docker tag'." }
+
     docker push $imagen
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'docker push'. Revisa que el repositorio ECR exista." }
     Write-Ok "Imagen subida como $imagen"
@@ -133,17 +172,20 @@ try {
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'terraform apply' de la fase ECS." }
     Write-Ok "Cluster, task definition y service creados"
 
-    $albUrl = (terraform output -raw alb-url).Trim()
+    $albUrl = (terraform output -raw alb-url 2>$null)
 }
 finally { Pop-Location }
 
-$api = "http://$albUrl"
+if (-not $albUrl) { Abortar "No he podido leer el output 'alb-url' de Terraform." }
+
+$albUrl = $albUrl.Trim()
+$api    = "http://$albUrl"
 Write-Info "ALB: $api"
 
-# Por si el servicio ya existia de una ejecucion anterior, forzamos
-# que recoja la imagen recien subida.
+# Por si el servicio ya existia de una ejecucion anterior, forzamos que
+# recoja la imagen recien subida. Si acaba de crearse, esto es inocuo.
 aws ecs update-service --cluster marathon-cluster --service marathon-service `
-    --force-new-deployment --output json 2>&1 | Out-Null
+    --force-new-deployment *> $null
 
 # --- 6. esperar a que el backend responda ----------------------------------
 
@@ -155,7 +197,7 @@ $vivo = $false
 
 for ($i = 1; $i -le $maxIntentos; $i++) {
     try {
-        $r = Invoke-WebRequest -Uri $api -UseBasicParsing -TimeoutSec 10
+        $r = Invoke-WebRequest -Uri $api -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
         if ($r.StatusCode -eq 200) { $vivo = $true; break }
     }
     catch { }
@@ -164,16 +206,16 @@ for ($i = 1; $i -le $maxIntentos; $i++) {
 }
 
 if (-not $vivo) {
-    Write-Aviso "El backend no responde todavia despues de 10 minutos."
-    Write-Aviso "Revisa las tareas en la consola: ECS -> marathon-cluster -> marathon-service -> Tasks."
+    Write-Aviso "El backend no responde despues de 10 minutos."
+    Write-Aviso "Mira las tareas en la consola: ECS -> marathon-cluster -> marathon-service -> Tasks."
     Write-Aviso "Si ves 'CannotPullContainerError', la imagen no llego bien a ECR."
-    Abortar "El backend no arranco. La infraestructura si esta creada, puedes investigar sin rehacerla."
+    Abortar "El backend no arranco. La infraestructura si esta creada."
 }
 Write-Ok "Backend respondiendo en $api"
 
 # Comprobamos tambien la conexion con DynamoDB
 try {
-    Invoke-RestMethod -Uri "$api/connection" -TimeoutSec 10 | Out-Null
+    Invoke-RestMethod -Uri "$api/connection" -TimeoutSec 10 -ErrorAction Stop | Out-Null
     Write-Ok "Backend conectado a DynamoDB"
 }
 catch {
@@ -189,13 +231,13 @@ else {
     Write-Paso "Compilando y publicando el frontend"
 
     # La URL del ALB cambia en cada despliegue, asi que la inyectamos aqui.
-    # (Mientras la URL siga hardcodeada en el codigo: ver docs/mejoras-propuestas.md)
-    $servicio = Join-Path $root "frontend\code\src\app\services\race.service.ts"
+    # (Mientras siga hardcodeada: ver docs/mejoras-propuestas.md, punto 2)
+    $servicio  = Join-Path $root "frontend\code\src\app\services\race.service.ts"
     $contenido = Get-Content $servicio -Raw
-    $nuevo = $contenido -replace "private readonly apiUrl = '[^']*';", "private readonly apiUrl = '$api';"
+    $nuevo     = $contenido -replace "private readonly apiUrl = '[^']*';", "private readonly apiUrl = '$api';"
 
     if ($nuevo -eq $contenido) {
-        Write-Aviso "No he podido localizar la linea de apiUrl en race.service.ts. Revisala a mano."
+        Write-Aviso "No he localizado la linea de apiUrl en race.service.ts. Revisala a mano."
     }
     else {
         Set-Content -Path $servicio -Value $nuevo -NoNewline
@@ -205,8 +247,8 @@ else {
     Push-Location (Join-Path $root "frontend\code")
     try {
         if (-not (Test-Path "node_modules")) {
-            Write-Info "Instalando dependencias de Angular (puede tardar unos minutos)"
-            npm install --silent
+            Write-Info "Instalando dependencias de Angular (unos minutos)"
+            npm install
             if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'npm install' del frontend." }
             Write-Ok "Dependencias instaladas"
         }
@@ -216,7 +258,19 @@ else {
         if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'npm run build'." }
         Write-Ok "Frontend compilado"
 
-        aws s3 sync "dist\Frontend\browser" "s3://$bucket" --delete --only-show-errors
+        $salida = Join-Path (Get-Location) "dist\Frontend\browser"
+        if (-not (Test-Path $salida)) { Abortar "No encuentro la carpeta compilada: $salida" }
+
+        # Comprobacion del arreglo 1: no debe haber codigo fuente en la salida
+        $fuentes = Get-ChildItem -Path $salida -Recurse -Filter *.ts -ErrorAction SilentlyContinue
+        if ($fuentes) {
+            Write-Aviso "La compilacion contiene $($fuentes.Count) archivos .ts. Revisa el bloque 'assets' de angular.json."
+        }
+        else {
+            Write-Ok "La compilacion no contiene codigo fuente"
+        }
+
+        aws s3 sync $salida "s3://$bucket" --delete --only-show-errors
         if ($LASTEXITCODE -ne 0) { Abortar "Fallo la subida a S3." }
         Write-Ok "Frontend publicado en el bucket $bucket"
     }
@@ -231,12 +285,8 @@ if ($SkipSeed) {
 else {
     Write-Paso "Cargando carreras de ejemplo"
     $seed = Join-Path $root "database\seed-races.ps1"
-    if (Test-Path $seed) {
-        & $seed -ApiUrl $api
-    }
-    else {
-        Write-Aviso "No encuentro database\seed-races.ps1, me lo salto."
-    }
+    if (Test-Path $seed) { & $seed -ApiUrl $api }
+    else { Write-Aviso "No encuentro database\seed-races.ps1, me lo salto." }
 }
 
 # --- resumen ---------------------------------------------------------------

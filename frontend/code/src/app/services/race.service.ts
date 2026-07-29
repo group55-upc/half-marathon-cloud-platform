@@ -17,7 +17,7 @@ export interface Race {
 })
 export class RaceService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://lb-backend-1129452724.us-east-1.elb.amazonaws.com';
+  private readonly apiUrl = 'http://lb-backend-1651861729.us-east-1.elb.amazonaws.com';
 
   getRaces(filters?: Partial<Race>): Observable<Race[]> {
     let params = new HttpParams();

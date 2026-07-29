@@ -1,0 +1,150 @@
+name: CI
+
+# Integración continua: valida la infraestructura, compila las dos aplicaciones
+# y analiza la imagen del contenedor en busca de vulnerabilidades.
+#
+# Ninguno de estos trabajos necesita credenciales de AWS, por lo que se ejecutan
+# siempre. El despliegue vive en un workflow aparte (deploy.yml) porque sí las
+# necesita y las del laboratorio caducan cada pocas horas.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+
+  # ------------------------------------------------------------------ infra
+  terraform:
+    name: Validar infraestructura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      # Informativo: el formato del código existente no sigue la convención
+      # de 'terraform fmt'. Se reporta sin bloquear el pipeline.
+      - name: Comprobar formato (informativo)
+        run: terraform fmt -check -recursive -diff backend/infra
+        continue-on-error: true
+
+      # -backend=false evita necesitar credenciales ni acceso al estado.
+      - name: Inicializar sin backend
+        run: terraform init -backend=false
+        working-directory: backend/infra
+
+      - name: Validar la configuración
+        run: terraform validate
+        working-directory: backend/infra
+
+  # --------------------------------------------------------------- frontend
+  frontend:
+    name: Compilar frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/code/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+        working-directory: frontend/code
+
+      - name: Compilar
+        run: npm run build
+        working-directory: frontend/code
+
+      # Guarda de regresión del defecto documentado en la memoria (11.6):
+      # el bloque 'assets' de angular.json copiaba todo src/ a la salida,
+      # publicando el código fuente en un bucket público.
+      - name: Comprobar que la compilación no contiene código fuente
+        run: |
+          FUENTES=$(find dist -name '*.ts' | wc -l)
+          echo "Archivos .ts en la salida de compilación: $FUENTES"
+          if [ "$FUENTES" -ne 0 ]; then
+            echo "::error::La compilación contiene $FUENTES archivos de código fuente."
+            echo "Revisa el bloque 'assets' de angular.json: no debe copiar todo src/."
+            find dist -name '*.ts'
+            exit 1
+          fi
+        working-directory: frontend/code
+
+      - name: Publicar la compilación como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/code/dist/Frontend/browser
+          retention-days: 7
+
+  # ---------------------------------------------------------------- backend
+  backend:
+    name: Construir y analizar backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/code/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+        working-directory: backend/code
+
+      - name: Comprobar que el código es sintácticamente válido
+        run: node --check server.js && node --check db.js
+        working-directory: backend/code
+
+      - name: Auditar dependencias (informativo)
+        run: npm audit --audit-level=high
+        working-directory: backend/code
+        continue-on-error: true
+
+      - name: Construir la imagen del contenedor
+        run: docker build -t marathon-backend:ci -f Dockerfile .
+        working-directory: backend/code
+
+      # Trivy analiza la imagen: sistema base y dependencias de Node.
+      # exit-code 0 = informativo. Cambiar a 1 para bloquear el pipeline
+      # cuando el equipo decida imponer un umbral de vulnerabilidades.
+      - name: Analizar vulnerabilidades con Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: marathon-backend:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Generar informe de vulnerabilidades
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: marathon-backend:ci
+          format: sarif
+          output: trivy-resultados.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Publicar el informe como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-resultados
+          path: trivy-resultados.sarif
+          retention-days: 7

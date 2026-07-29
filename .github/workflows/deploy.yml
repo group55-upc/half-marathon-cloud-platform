@@ -1,0 +1,205 @@
+name: Deploy (manual)
+
+# Despliegue de la APLICACIÓN sobre una infraestructura ya existente.
+#
+# POR QUÉ ES MANUAL Y NO AUTOMÁTICO
+#
+# 1. Credenciales. El laboratorio de AWS Academy emite credenciales temporales
+#    que caducan cada pocas horas. Un despliegue automático en cada cambio
+#    estaría fallando la mayor parte del tiempo. Antes de lanzar este workflow
+#    hay que actualizar los tres secretos del repositorio.
+#
+# 2. Estado de Terraform. El estado se mantiene en local, en el equipo de cada
+#    integrante, no en un backend remoto compartido. Este workflow NO puede por
+#    tanto crear ni modificar la infraestructura: no tiene acceso al estado.
+#    Solo despliega la aplicación sobre una infraestructura ya creada con
+#    'deploy.ps1' o con Terraform en local.
+#
+# REQUISITOS PREVIOS
+#
+#   - La infraestructura debe estar desplegada (deploy.ps1)
+#   - El laboratorio arrancado
+#   - Secretos configurados en Settings -> Secrets and variables -> Actions:
+#       AWS_ACCESS_KEY_ID
+#       AWS_SECRET_ACCESS_KEY
+#       AWS_SESSION_TOKEN
+
+on:
+  workflow_dispatch:
+    inputs:
+      desplegar_frontend:
+        description: "Compilar y publicar también el frontend"
+        type: boolean
+        default: true
+      esperar_estabilizacion:
+        description: "Esperar a que el servicio ECS se estabilice"
+        type: boolean
+        default: true
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: container-image-repository
+  ECS_CLUSTER: marathon-cluster
+  ECS_SERVICE: marathon-service
+  ALB_NAME: lb-backend
+  S3_BUCKET: marathon-cloudupc-website
+  NODE_VERSION: "24"
+
+jobs:
+  deploy:
+    name: Desplegar aplicación
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verificar credenciales
+        run: |
+          if ! aws sts get-caller-identity; then
+            echo "::error::Las credenciales no son válidas o han caducado."
+            echo "Arranca el laboratorio y actualiza los secretos del repositorio."
+            exit 1
+          fi
+
+      # La infraestructura no la gestiona este workflow, así que sus datos se
+      # descubren consultando la API de AWS en lugar de leer el estado.
+      - name: Localizar la infraestructura existente
+        id: infra
+        run: |
+          ECR_URI=$(aws ecr describe-repositories \
+            --repository-names "$ECR_REPO" \
+            --query 'repositories[0].repositoryUri' --output text 2>/dev/null) || true
+
+          if [ -z "$ECR_URI" ] || [ "$ECR_URI" = "None" ]; then
+            echo "::error::No encuentro el repositorio ECR '$ECR_REPO'."
+            echo "La infraestructura no está desplegada. Ejecuta deploy.ps1 primero."
+            exit 1
+          fi
+
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names "$ALB_NAME" \
+            --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null) || true
+
+          if [ -z "$ALB_DNS" ] || [ "$ALB_DNS" = "None" ]; then
+            echo "::error::No encuentro el balanceador '$ALB_NAME'."
+            exit 1
+          fi
+
+          echo "ecr_uri=$ECR_URI"   >> "$GITHUB_OUTPUT"
+          echo "alb_dns=$ALB_DNS"   >> "$GITHUB_OUTPUT"
+          echo "api_url=http://$ALB_DNS" >> "$GITHUB_OUTPUT"
+
+          echo "### Infraestructura localizada" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Registro: \`$ECR_URI\`"        >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: http://$ALB_DNS"          >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Autenticar contra ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Se etiqueta dos veces:
+      #   :v1.0             porque la definición de tarea de ECS la referencia fija
+      #   :<hash del commit> para disponer de trazabilidad de versiones, que es
+      #                      la limitación documentada en la memoria (12.2)
+      - name: Construir y publicar la imagen
+        working-directory: backend/code
+        run: |
+          ECR="${{ steps.infra.outputs.ecr_uri }}"
+          SHA="${GITHUB_SHA::7}"
+
+          docker build -t "$ECR:v1.0" -t "$ECR:$SHA" -f Dockerfile .
+          docker push "$ECR:v1.0"
+          docker push "$ECR:$SHA"
+
+          echo "- Imagen publicada como \`v1.0\` y \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Forzar un nuevo despliegue del servicio
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force-new-deployment \
+            --query 'service.serviceName' --output text
+
+      - name: Esperar a que el servicio se estabilice
+        if: ${{ inputs.esperar_estabilizacion }}
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+          echo "- Servicio ECS estabilizado" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comprobar que la API responde
+        run: |
+          API="${{ steps.infra.outputs.api_url }}"
+          for i in $(seq 1 20); do
+            if curl -fsS --max-time 10 "$API/" > /dev/null; then
+              echo "La API responde en $API"
+              curl -fsS "$API/connection" || echo "Aviso: no alcanza DynamoDB"
+              echo "- API operativa" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "esperando... intento $i de 20"
+            sleep 15
+          done
+          echo "::error::La API no responde tras 5 minutos."
+          exit 1
+
+      # ----------------------------------------------------------- frontend
+      - name: Instalar Node.js
+        if: ${{ inputs.desplegar_frontend }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/code/package-lock.json
+
+      - name: Inyectar la dirección de la API
+        if: ${{ inputs.desplegar_frontend }}
+        working-directory: frontend/code
+        run: |
+          API="${{ steps.infra.outputs.api_url }}"
+          sed -i "s|private readonly apiUrl = '[^']*';|private readonly apiUrl = '$API';|" \
+            src/app/services/race.service.ts
+          grep -n "apiUrl" src/app/services/race.service.ts
+
+      - name: Compilar el frontend
+        if: ${{ inputs.desplegar_frontend }}
+        working-directory: frontend/code
+        run: |
+          npm ci
+          npm run build
+
+      - name: Comprobar que la compilación no contiene código fuente
+        if: ${{ inputs.desplegar_frontend }}
+        working-directory: frontend/code
+        run: |
+          FUENTES=$(find dist -name '*.ts' | wc -l)
+          if [ "$FUENTES" -ne 0 ]; then
+            echo "::error::La compilación contiene $FUENTES archivos de código fuente."
+            exit 1
+          fi
+          echo "La compilación no contiene código fuente"
+
+      - name: Publicar el frontend en S3
+        if: ${{ inputs.desplegar_frontend }}
+        working-directory: frontend/code
+        run: |
+          aws s3 sync dist/Frontend/browser "s3://$S3_BUCKET" --delete --only-show-errors
+          echo "- Frontend publicado en \`$S3_BUCKET\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Resumen
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Despliegue completado" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Web: http://$S3_BUCKET.s3-website-$AWS_REGION.amazonaws.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: ${{ steps.infra.outputs.api_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Abre la web con \`http://\`, no \`https://\`: los endpoints de sitio web estático de S3 no admiten HTTPS." >> "$GITHUB_STEP_SUMMARY"

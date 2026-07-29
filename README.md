@@ -72,6 +72,7 @@ están en [`docs/architecture.md`](docs/architecture.md).
 | `database/` | Modelo de datos y carga de datos de ejemplo |
 | `docs/` | Documentación de arquitectura, planificación y mejoras propuestas |
 | `deploy.ps1` | Despliegue completo automatizado (Windows) |
+| `.github/workflows/` | Pipelines de integración continua y de despliegue |
 
 ### Desarrollos paralelos e histórico
 
@@ -85,7 +86,6 @@ documental:
 | `infrastructure/terraform/` | Esqueleto del planteamiento inicial. **No se usa.** |
 | `kubernetes/` | Manifests del planteamiento inicial con EKS. **No se usa.** |
 | `lambdas/` | Función de importación prevista como opcional. **No implementada.** |
-| `.github/workflows/` | Pipeline de CI vacío (solo un `echo` de marcador). |
 
 ## Despliegue
 
@@ -258,13 +258,59 @@ terraform destroy
 
 > **Importante para el coste.** Cerrar la sesión del laboratorio **no detiene** el
 > balanceador, las tareas Fargate ni los VPC endpoints: siguen consumiendo crédito.
-> La infraestructura cuesta aproximadamente **2,40 USD al día** estando inactiva
-> (~1,20 de Fargate, ~0,72 de los tres VPC endpoints de tipo Interface, ~0,54 del ALB).
+> La infraestructura cuesta aproximadamente **3,12 USD al día** estando inactiva
+> (~1,20 de Fargate, ~1,44 de los VPC endpoints de tipo Interface, ~0,54 del ALB).
 > Conviene destruirla al terminar cada sesión de trabajo.
+>
+> Los endpoints de tipo Interface **se facturan por zona de disponibilidad**. Al
+> desplegar el backend en dos zonas para obtener alta disponibilidad real, los tres
+> endpoints pasan a crear seis interfaces de red en lugar de tres. La tolerancia al
+> fallo de una zona cuesta por tanto 0,72 USD diarios adicionales.
 >
 > Cada integrante tiene su propio `terraform.tfstate` local, así que cada despliegue
 > crea una infraestructura completamente independiente. Tres despliegues simultáneos
 > triplican el coste.
+
+## Integración continua y despliegue
+
+El repositorio incluye dos pipelines en `.github/workflows/`.
+
+### `ci.yml` — automático
+
+Se ejecuta en cada `push` a `main` y en cada *pull request*. **No requiere
+credenciales de AWS**, por lo que funciona siempre. Tres trabajos en paralelo:
+
+| Trabajo | Comprueba |
+|---|---|
+| `terraform` | Formato (informativo) y validez de la configuración de infraestructura |
+| `frontend` | Que las dependencias instalan y que la aplicación compila |
+| `backend` | Sintaxis, auditoría de dependencias, construcción de la imagen y análisis de vulnerabilidades con Trivy |
+
+El trabajo `frontend` incluye una **guarda de regresión**: cuenta los archivos `.ts`
+en el resultado de la compilación y falla si encuentra alguno. Impide que reaparezca
+el defecto por el que el código fuente acabó publicado en el bucket público.
+
+### `deploy.yml` — manual
+
+Se lanza desde la pestaña **Actions** del repositorio. Despliega **la aplicación**
+sobre una infraestructura ya existente: publica la imagen en ECR, fuerza el
+redespliegue del servicio ECS, espera a que la API responda, compila el frontend
+inyectando la dirección del balanceador y lo publica en S3.
+
+Etiqueta la imagen dos veces: como `v1.0`, que es la referencia fija de la definición
+de tarea, y con el hash abreviado del commit, lo que aporta trazabilidad de versiones.
+
+**Por qué es manual y no continuo.** Dos razones técnicas:
+
+1. Las credenciales del laboratorio caducan cada pocas horas. Un despliegue en cada
+   cambio fallaría la mayor parte del tiempo.
+2. El estado de Terraform se mantiene en local. El pipeline no puede por tanto crear
+   ni modificar la infraestructura, únicamente desplegar la aplicación sobre una
+   infraestructura previamente creada con `deploy.ps1`.
+
+**Requisitos.** Configurar en Settings → Secrets and variables → Actions los secretos
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN`, que hay que
+actualizar cada vez que se reinicie el laboratorio.
 
 ## API
 
@@ -339,8 +385,6 @@ ejecutables sobre DynamoDB, que no utiliza SQL.
   Resolverlo requiere CloudFront delante del bucket y un certificado de ACM en el
   balanceador, y la validación del certificado necesita un dominio propio, algo no
   disponible en el laboratorio.
-- El backend corre en una única zona de disponibilidad. El balanceador está en dos,
-  pero la subred privada solo existe en `us-east-1a`.
 - El nombre del bucket de S3 es fijo, y los nombres de bucket son únicos globalmente
   en AWS. Solo un integrante puede tener la infraestructura levantada a la vez.
 - La URL del balanceador está escrita en el código del frontend y cambia con cada
@@ -350,10 +394,21 @@ ejecutables sobre DynamoDB, que no utiliza SQL.
 - El despliegue depende del rol `LabRole`, que solo existe en los laboratorios de AWS
   Academy. El proyecto no es portable a una cuenta de AWS convencional sin cambios.
 
+- **No se ha podido integrar Amazon Bedrock**, previsto como funcionalidad opcional
+  en el planteamiento inicial. El rol de usuario del laboratorio carece del permiso
+  `bedrock:ListFoundationModels`, y no es posible auditar los permisos del rol de
+  ejecución de las tareas porque el acceso a IAM está denegado explícitamente.
+  Además, dado que las tareas no tienen salida a internet y Bedrock no dispone de
+  endpoint de tipo Gateway, la integración exigiría un endpoint adicional de tipo
+  Interface con un coste de 0,48 USD diarios.
+
 **De calidad**
 
 - No hay pruebas automatizadas.
-- El pipeline de CI está sin implementar.
+- El despliegue automatizado desde el pipeline es de disparo manual, no continuo.
+  Las razones son dos: las credenciales del laboratorio caducan cada pocas horas,
+  y el estado de Terraform es local, por lo que el pipeline no puede gestionar la
+  infraestructura, únicamente desplegar la aplicación sobre ella.
 
 El análisis completo, con la solución concreta y el esfuerzo estimado de cada punto,
 está en [`docs/mejoras-propuestas.md`](docs/mejoras-propuestas.md).

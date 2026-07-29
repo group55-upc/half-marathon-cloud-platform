@@ -101,8 +101,10 @@ se ha abordado.
 | T4 | Backend no accesible directamente desde internet | Completado |
 | T5 | Despliegue reproducible desde cero | Completado |
 | T6 | Registro centralizado de logs | Completado |
-| T7 | Integración continua | **No implementado** |
+| T7 | Integración continua | Completado |
 | T8 | Comunicación cifrada de extremo a extremo | **No alcanzable** en el entorno de prácticas (ver 9.2) |
+| T9 | Tolerancia al fallo de una zona de disponibilidad | Completado |
+| T10 | Asistente conversacional con Amazon Bedrock | **No viable** en el entorno de prácticas (ver 5.5) |
 
 ### 2.3 Fuera de alcance
 
@@ -190,9 +192,14 @@ modo que el tráfico no abandona la red interna de AWS.
 |---|---|
 | VPC | `10.0.0.0/16`, con soporte y nombres DNS habilitados |
 | Subredes públicas | `10.0.0.0/24` (`us-east-1a`), `10.0.1.0/24` (`us-east-1b`) |
-| Subred privada | `10.0.2.0/24` (`us-east-1a`) |
+| Subredes privadas | `10.0.2.0/24` (`us-east-1a`), `10.0.3.0/24` (`us-east-1b`) |
 | Tabla de rutas pública | `0.0.0.0/0` → Internet Gateway |
 | Tabla de rutas privada | Sin ruta a internet |
+
+Las subredes, tanto públicas como privadas, se despliegan una por zona de
+disponibilidad. El servicio ECS recibe la lista completa de subredes privadas, de modo
+que distribuye sus dos tareas entre ambas zonas: la redundancia protege del fallo de
+una tarea y del fallo de una zona completa.
 
 La decisión determinante es la ausencia de ruta a internet en la subred privada: no hay
 Internet Gateway ni NAT Gateway asociados. El backend queda completamente aislado del
@@ -308,6 +315,49 @@ AWS Amplify, dentro de la misma intención de explorar servicios nuevos. No se l
 utilizar en el despliegue final: Amplify sirve el contenido exclusivamente por HTTPS, y
 al no disponer el balanceador de un listener cifrado, el navegador bloquearía las
 llamadas a la API por política de contenido mixto (ver 9.2).
+
+## 5.5. Amazon Bedrock: análisis de viabilidad
+
+El planteamiento inicial contemplaba, como funcionalidad opcional, un asistente
+conversacional basado en Amazon Bedrock. Se evaluó su incorporación y se descartó por
+tres impedimentos de naturaleza distinta, ninguno relacionado con la disponibilidad de
+tiempo.
+
+**Diseño previsto.** Una búsqueda en lenguaje natural: el usuario escribe *"medias
+maratones en España en primavera"* y el sistema traduce la frase a los filtros
+correspondientes. Habría requerido un endpoint `POST /assistant` en la API, la
+dependencia `@aws-sdk/client-bedrock-runtime`, el permiso `bedrock:InvokeModel` en el
+rol de tarea, y un componente de entrada de texto en el dashboard.
+
+**Impedimento 1: permisos del rol de usuario.** La consulta del catálogo de modelos se
+rechaza con `AccessDeniedException`, indicando que ninguna política autoriza la acción
+`bedrock:ListFoundationModels`. Nótese la formulación: no hay denegación explícita,
+sino ausencia de autorización. El servicio no forma parte del conjunto habilitado en el
+entorno de prácticas.
+
+**Impedimento 2: imposibilidad de auditar el rol de tarea.** El backend no se ejecuta
+con el rol del usuario sino con `LabRole`, cuyos permisos podrían diferir. La consulta
+de sus políticas revela cuatro políticas gestionadas de AWS —ninguna concede Bedrock— y
+tres políticas propias del entorno cuyo contenido no puede inspeccionarse: la operación
+`iam:GetPolicy` está denegada explícitamente. La verificación documental es por tanto
+imposible.
+
+**Impedimento 3: obstáculo arquitectónico.** Es el hallazgo más relevante, por ser
+independiente de los permisos. Las tareas se ejecutan en una subred privada sin salida a
+internet, y Bedrock —a diferencia de S3 y DynamoDB— no dispone de endpoint de tipo
+Gateway. La integración exigiría un endpoint de tipo Interface adicional, con un coste
+de 0,48 USD diarios en la configuración de dos zonas.
+
+Como consecuencia, tampoco existe una prueba empírica económica: desde la subred privada
+la invocación fracasaría por tiempo de espera de red con independencia de los permisos,
+resultado indistinguible de una denegación. Determinar la causa real exigiría crear
+previamente el endpoint y asumir su coste.
+
+**Conclusión.** La funcionalidad se descarta por limitación del entorno y no por
+decisión de alcance. Su incorporación en un entorno sin restricciones requeriría
+habilitar el acceso al modelo en la cuenta, conceder el permiso de invocación al rol de
+tarea, añadir el VPC endpoint correspondiente, e implementar el endpoint y el
+componente descritos.
 
 ---
 
@@ -462,7 +512,49 @@ También se ha desarrollado `database/seed-races.ps1`, que carga un conjunto de 
 de ejemplo mediante llamadas a la API. Es el equivalente funcional del `seed.sql` del
 diseño relacional inicial.
 
-### 6.4 Resultado medido
+### 6.4 Integración continua y despliegue
+
+El repositorio incorpora dos pipelines de GitHub Actions con responsabilidades
+deliberadamente separadas.
+
+**`ci.yml`, automático.** Se ejecuta en cada `push` a `main` y en cada *pull request*.
+No requiere credenciales de AWS, por lo que funciona siempre. Comprende tres trabajos en
+paralelo: validación de la configuración de Terraform, compilación del frontend, y
+construcción de la imagen del backend con análisis de vulnerabilidades mediante Trivy.
+
+Incorpora una **guarda de regresión**: tras compilar el frontend cuenta los archivos
+`.ts` presentes en la salida y falla si encuentra alguno. El defecto documentado en el
+apartado 11.6 —la publicación de código fuente en un bucket público— no puede por tanto
+reaparecer sin que la integración continua lo bloquee. Es un ejemplo de cómo un defecto
+corregido se convierte en una garantía permanente.
+
+**`deploy.yml`, de disparo manual.** Despliega la aplicación sobre una infraestructura
+existente: publica la imagen en el registro, fuerza el redespliegue del servicio, espera
+a que la API responda, y compila y publica el frontend inyectando la dirección del
+balanceador.
+
+Etiqueta la imagen con dos referencias: `v1.0`, que es la que la definición de tarea
+referencia de forma fija, y el hash abreviado del commit. Esto último resuelve
+parcialmente la limitación de trazabilidad de versiones señalada en el apartado 12.2.
+
+**Justificación del disparo manual.** Dos razones de carácter estructural:
+
+1. **Credenciales temporales.** Las del entorno de prácticas caducan cada pocas horas,
+   de modo que un despliegue automático en cada cambio fallaría la mayor parte del
+   tiempo.
+2. **Estado local de la infraestructura.** El pipeline no tiene acceso al estado de
+   Terraform, por lo que no puede crear ni modificar infraestructura. Localiza los
+   recursos existentes consultando la API del proveedor en lugar de leer los valores de
+   salida de Terraform.
+
+La segunda razón constituye además una separación de responsabilidades adecuada: el
+pipeline despliega la aplicación, mientras que el aprovisionamiento de la
+infraestructura se realiza de forma independiente. Conviene señalar que la aprobación
+manual de los despliegues es práctica habitual en entornos productivos, por lo que el
+disparo manual no debe interpretarse como una carencia, sino como una decisión
+justificada por las circunstancias del entorno.
+
+### 6.5 Resultado medido
 
 Ejecución completa desde infraestructura inexistente:
 
@@ -532,11 +624,20 @@ basada en precios públicos de referencia:
 
 | Recurso | Coste diario | Coste mensual |
 |---|---|---|
+| 3 VPC endpoints de tipo Interface, en 2 zonas | 1,44 USD | ~44 USD |
 | 2 tareas Fargate (1 vCPU y 2 GB en total) | 1,20 USD | ~36 USD |
-| 3 VPC endpoints de tipo Interface | 0,72 USD | ~22 USD |
 | Application Load Balancer | 0,54 USD | ~16 USD |
 | DynamoDB (bajo demanda), S3, ECR, endpoints Gateway | céntimos | ~1 USD |
-| **Total** | **~2,40 USD** | **~75 USD** |
+| **Total** | **~3,12 USD** | **~97 USD** |
+
+El gasto principal no es el cómputo ni el balanceo, sino la **conectividad privada**.
+Los endpoints de tipo Interface se facturan por zona de disponibilidad, de modo que al
+desplegar el backend en dos zonas su coste se duplica: de 0,72 a 1,44 USD diarios.
+
+**El cumplimiento de la tolerancia al fallo de zona tiene por tanto un precio
+cuantificado de 0,72 USD diarios**, un 30 % sobre la factura previa. Fargate no
+encarece, porque se paga por tarea con independencia de su ubicación; el sobrecoste
+procede íntegramente de duplicar las interfaces de red de los endpoints.
 
 ### 8.2 Observaciones
 
@@ -716,14 +817,17 @@ problema de contenido mixto documentado en el apartado 9.2.
 ### 11.2 Limitaciones técnicas
 
 - Ausencia de cifrado en tránsito (apartado 9.2).
-- El backend se ejecuta en una única zona de disponibilidad: la redundancia de dos
-  tareas protege del fallo de una tarea, no del fallo de una zona.
+- No se ha integrado Amazon Bedrock, por las tres razones expuestas en el apartado 5.5.
 - Las búsquedas se resuelven mediante `Scan`, sin índices secundarios (apartado 4.3).
 - Ausencia de paginación en la API y en la interfaz.
-- La imagen del contenedor se etiqueta siempre como `v1.0`, sobrescribiendo la
-  anterior: no existe historial de versiones ni posibilidad de retroceso.
-- El estado de Terraform es local, sin backend compartido ni bloqueo.
+- La definición de tarea referencia la etiqueta `v1.0` de forma fija. El pipeline de
+  despliegue publica además la imagen con el hash del commit, lo que aporta
+  trazabilidad, pero la referencia de la definición sigue siendo estática.
+- El estado de Terraform es local, sin backend compartido ni bloqueo. Es también lo que
+  impide que el pipeline gestione la infraestructura y no solo la aplicación.
+- El despliegue automatizado es de disparo manual, no continuo (apartado 6.4).
 - Dependencia del rol `LabRole`, exclusivo de los laboratorios de AWS Academy.
+- Ausencia de pruebas automatizadas.
 
 ### 11.3 Líneas de trabajo futuro
 
@@ -732,7 +836,8 @@ Por orden de prioridad estimada:
 | Línea | Actuación | Complejidad |
 |---|---|---|
 | Cifrado extremo a extremo | CloudFront ante el bucket y certificado de ACM en el balanceador | Alta (requiere dominio propio) |
-| Alta disponibilidad real | Desdoblar la subred privada en dos zonas | Baja |
+| Despliegue continuo | Backend remoto para el estado y credenciales no temporales | Media |
+| Asistente con Bedrock | Habilitar el servicio, conceder el permiso y añadir el VPC endpoint | No viable en el entorno de prácticas |
 | Externalizar la configuración | Archivo de configuración leído en tiempo de ejecución | Baja |
 | Búsquedas eficientes | Índices secundarios globales y paginación | Media |
 | Autenticación | Amazon Cognito o JWT con la dependencia ya presente | Media |

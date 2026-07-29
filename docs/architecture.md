@@ -65,9 +65,14 @@ graph TD
 |---|---|
 | VPC | `10.0.0.0/16`, con resolución y nombres DNS habilitados |
 | Subredes públicas | `10.0.0.0/24` en `us-east-1a`, `10.0.1.0/24` en `us-east-1b` |
-| Subred privada | `10.0.2.0/24` en `us-east-1a` |
+| Subredes privadas | `10.0.2.0/24` en `us-east-1a`, `10.0.3.0/24` en `us-east-1b` |
 | Internet Gateway | Asociado a la tabla de rutas pública (`0.0.0.0/0` → IGW) |
 | Tabla de rutas privada | **Sin ruta a internet** |
+
+Tanto las subredes públicas como las privadas se despliegan una por zona de
+disponibilidad, recorriendo la lista `var.aws-availability-zones` mediante `count`.
+Con una sola subred privada, las dos tareas del servicio acabarían en la misma zona
+y la redundancia solo protegería del fallo de una tarea, no de una zona.
 
 La decisión de diseño relevante está en la última fila: la subred privada no tiene
 salida a internet, ni por Internet Gateway ni por NAT Gateway. El backend está
@@ -85,14 +90,18 @@ la red interna de Amazon sin pasar por internet. Hay dos tipos, y aquí se usan 
 |---|---|---|---|
 | `com.amazonaws.us-east-1.s3` | Gateway | Acceso a S3 desde la subred privada | Gratuito |
 | `com.amazonaws.us-east-1.dynamodb` | Gateway | **Acceso del backend a la base de datos** | Gratuito |
-| `com.amazonaws.us-east-1.ecr.api` | Interface | Consultar el registro de imágenes | ~0,24 USD/día |
-| `com.amazonaws.us-east-1.ecr.dkr` | Interface | Descargar la imagen del contenedor | ~0,24 USD/día |
-| `com.amazonaws.us-east-1.logs` | Interface | Enviar logs a CloudWatch | ~0,24 USD/día |
+| `com.amazonaws.us-east-1.ecr.api` | Interface | Consultar el registro de imágenes | ~0,48 USD/día |
+| `com.amazonaws.us-east-1.ecr.dkr` | Interface | Descargar la imagen del contenedor | ~0,48 USD/día |
+| `com.amazonaws.us-east-1.logs` | Interface | Enviar logs a CloudWatch | ~0,48 USD/día |
 
 Los de tipo **Gateway** se implementan como entradas en la tabla de rutas y no cuestan
-nada. Los de tipo **Interface** crean una interfaz de red real dentro de la subred y
-se facturan por hora, aunque no se use. Los tres de Interface juntos suponen unos
-0,72 USD al día, casi tanto como el balanceador.
+nada. Los de tipo **Interface** crean una interfaz de red real dentro de cada subred y
+se facturan por hora, aunque no se usen.
+
+**Y se facturan por zona de disponibilidad.** Al desplegar el backend en dos zonas,
+cada endpoint de tipo Interface crea dos interfaces de red en lugar de una, de modo
+que su coste se duplica: los tres juntos pasan de 0,72 a **1,44 USD diarios**, por
+encima del balanceador. Es el precio concreto de la alta disponibilidad.
 
 Los tres de Interface existen porque las tareas Fargate necesitan descargar su imagen
 de ECR y escribir logs, y no tienen otra vía sin salida a internet. Es un compromiso
@@ -182,10 +191,14 @@ permisos mínimos. Aquí es el mismo rol amplio porque es el único disponible.
 Esta dependencia hace que **el proyecto no sea portable a una cuenta de AWS
 convencional** sin sustituir esa referencia.
 
-**Las dos réplicas.** El servicio mantiene dos tareas para tolerar el fallo de una.
-Pero ambas se ubican en la única subred privada, es decir en la misma zona de
-disponibilidad, así que la redundancia protege del fallo de una tarea pero no del
-fallo de una zona.
+**Las dos réplicas.** El servicio mantiene dos tareas y recibe la lista completa de
+subredes privadas (`aws_subnet.private[*].id`), una por zona de disponibilidad. ECS
+distribuye las tareas entre las subredes disponibles, de modo que la redundancia
+protege tanto del fallo de una tarea como del fallo de una zona completa.
+
+El coste de esta decisión no está en Fargate, que se paga por tarea con independencia
+de dónde se ubique, sino en los VPC endpoints de tipo Interface, que se facturan por
+zona: ver el apartado 2.2.
 
 ### 2.7 Base de datos (DynamoDB)
 
@@ -341,6 +354,38 @@ Alternativas más limpias a este mecanismo, en
 
 ---
 
+## 5.bis. Integración continua y despliegue
+
+El repositorio incluye dos pipelines de GitHub Actions con responsabilidades separadas.
+
+**`ci.yml`, automático.** Se ejecuta en cada `push` a `main` y en cada *pull request*.
+No requiere credenciales de AWS, por lo que funciona siempre. Valida la configuración
+de Terraform (`init -backend=false` y `validate`), compila el frontend y construye la
+imagen del backend analizándola con Trivy.
+
+Incorpora una **guarda de regresión**: tras compilar el frontend cuenta los archivos
+`.ts` presentes en la salida y falla si encuentra alguno, impidiendo que reaparezca el
+defecto por el que el código fuente acabó publicado en el bucket público.
+
+**`deploy.yml`, manual.** Despliega la aplicación sobre una infraestructura existente.
+Publica la imagen en ECR con doble etiqueta (`v1.0`, que es la referencia fija de la
+definición de tarea, y el hash abreviado del commit para trazabilidad), fuerza el
+redespliegue del servicio, espera a que la API responda, y publica el frontend.
+
+Las dos razones por las que el despliegue no es continuo son estructurales:
+
+- **Credenciales temporales.** Las del laboratorio caducan cada pocas horas, de modo
+  que un despliegue en cada cambio fallaría la mayor parte del tiempo.
+- **Estado local de Terraform.** El pipeline no tiene acceso al estado, por lo que no
+  puede crear ni modificar la infraestructura. Localiza los recursos existentes
+  consultando la API de AWS (`describe-repositories`, `describe-load-balancers`) en
+  lugar de leer los *outputs* de Terraform.
+
+La segunda razón es también una separación de responsabilidades correcta: el pipeline
+despliega la aplicación, la infraestructura se aprovisiona aparte.
+
+---
+
 ## 6. Observabilidad
 
 Las tareas escriben en el grupo de logs `/ecs/half-marathon` de CloudWatch, con el
@@ -365,11 +410,15 @@ Estimaciones para `us-east-1`, con la infraestructura levantada e inactiva:
 
 | Recurso | Coste diario aprox. |
 |---|---|
+| 3 VPC endpoints de tipo Interface, en 2 zonas | 1,44 USD |
 | 2 tareas Fargate (1 vCPU y 2 GB en total) | 1,20 USD |
-| 3 VPC endpoints de tipo Interface | 0,72 USD |
 | Application Load Balancer | 0,54 USD |
 | DynamoDB, S3, ECR, endpoints Gateway | céntimos |
-| **Total** | **~2,40 USD/día** |
+| **Total** | **~3,12 USD/día** |
+
+Nótese que el gasto principal no es el cómputo ni el balanceo, sino la conectividad
+privada. Es una consecuencia directa de dos decisiones de arquitectura: aislar la
+subred privada de internet, y desplegarla en dos zonas de disponibilidad.
 
 Son precios públicos de referencia, no facturación real: el dato exacto está en Cost
 Explorer.
@@ -388,14 +437,98 @@ Dos consideraciones importantes:
 | Limitación | Solución | Complejidad |
 |---|---|---|
 | Sin HTTPS | CloudFront delante del bucket + certificado de ACM en el ALB | Alta: requiere un dominio propio para validar el certificado |
-| Backend en una sola zona | Convertir la subred privada en dos, una por zona | Baja |
 | Búsquedas mediante `Scan` | Índices secundarios globales por ciudad y país | Media |
 | Sin paginación | Paginar en la API y en el frontend | Media |
 | Sin autenticación | Cognito, o JWT propio con la dependencia ya presente | Media |
-| Etiqueta de imagen fija | Etiquetar con el hash del commit | Baja |
-| Sin CI/CD | Implementar el workflow existente: build, escaneo con Trivy, push | Media |
 | Sin pruebas | Vitest ya está instalado en el frontend | Baja |
+| Despliegue no continuo | Backend remoto para el estado + credenciales estables | Media |
+| Nombre de bucket fijo | Incorporar el identificador de cuenta al nombre | Baja |
 | Dependencia de `LabRole` | Definir roles propios con permisos mínimos | Media |
+| Sin asistente de IA | Ver el apartado 9 | No viable en el laboratorio |
 
 El detalle de cada punto, con el código concreto de la solución y el esfuerzo
 estimado, está en [`mejoras-propuestas.md`](mejoras-propuestas.md).
+
+---
+
+## 9. Amazon Bedrock: análisis de viabilidad
+
+El planteamiento inicial del proyecto contemplaba, como funcionalidad opcional, un
+asistente conversacional basado en Amazon Bedrock. Se evaluó su incorporación y se
+descartó. Se documenta el análisis porque las razones son de tres naturalezas
+distintas y ninguna es la falta de tiempo.
+
+### 9.1. Diseño previsto
+
+La funcionalidad habría consistido en una búsqueda en lenguaje natural: el usuario
+escribe *"medias maratones en España en primavera"* y el sistema traduce la frase a
+los filtros correspondientes.
+
+```
+Interfaz  ->  POST /assistant  ->  Bedrock InvokeModel
+                                   (catálogo como contexto)
+                                        |
+                                        v
+                            filtros estructurados -> DynamoDB
+```
+
+Habría requerido un endpoint nuevo en la API, la dependencia
+`@aws-sdk/client-bedrock-runtime`, permiso `bedrock:InvokeModel` en el rol de tarea, y
+un componente de entrada de texto en el dashboard.
+
+### 9.2. Impedimento 1: permisos del rol de usuario
+
+La consulta del catálogo de modelos disponibles se rechaza:
+
+```
+AccessDeniedException: User ... is not authorized to perform:
+bedrock:ListFoundationModels because no identity-based policy
+allows the bedrock:ListFoundationModels action
+```
+
+Nótese la formulación: no existe una denegación explícita, sino ausencia de
+autorización. El servicio no forma parte del conjunto habilitado en el laboratorio.
+
+### 9.3. Impedimento 2: imposibilidad de auditar el rol de tarea
+
+El backend no se ejecuta con el rol del usuario, sino con `LabRole`, de modo que en
+principio sus permisos podrían diferir. La consulta de las políticas asociadas revela
+cuatro políticas gestionadas de AWS (`AmazonSSMManagedInstanceCore`,
+`AmazonEKSClusterPolicy`, `AmazonEC2ContainerRegistryReadOnly`,
+`AmazonEKSWorkerNodePolicy`) y tres políticas propias del laboratorio.
+
+Ninguna de las gestionadas concede acceso a Bedrock. El contenido de las tres propias
+no puede inspeccionarse:
+
+```
+AccessDenied: ... not authorized to perform: iam:GetPolicy ...
+with an explicit deny in an identity-based policy: .../Pvoclabs1
+```
+
+Aquí sí hay denegación explícita. La verificación es por tanto imposible por vía
+documental.
+
+### 9.4. Impedimento 3: obstáculo arquitectónico
+
+Este es el hallazgo más relevante, por ser independiente de los permisos.
+
+Las tareas se ejecutan en una subred privada **sin salida a internet**. Los servicios
+de AWS se alcanzan mediante VPC endpoints, y Bedrock —a diferencia de S3 y
+DynamoDB— **no dispone de endpoint de tipo Gateway**, que son los gratuitos.
+
+La integración exigiría por tanto un endpoint de tipo Interface adicional para
+`bedrock-runtime`, con un coste de 0,24 USD diarios por zona de disponibilidad: **0,48
+USD diarios** con la configuración de dos zonas, un 15 % sobre la factura actual.
+
+Como consecuencia, tampoco existe una prueba empírica económica: desde la subred
+privada la invocación fracasaría por tiempo de espera de red con independencia de los
+permisos, resultado indistinguible de una denegación. Determinar la causa real exigiría
+crear previamente el endpoint.
+
+### 9.5. Conclusión
+
+La funcionalidad se descarta por limitación del entorno, no por decisión de alcance.
+Su incorporación en un entorno sin restricciones requeriría: habilitar el acceso al
+modelo en la cuenta, conceder `bedrock:InvokeModel` al rol de tarea, añadir el VPC
+endpoint de `bedrock-runtime`, e implementar el endpoint y el componente descritos en
+el apartado 9.1.
