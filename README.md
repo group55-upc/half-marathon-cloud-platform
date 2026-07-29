@@ -70,9 +70,21 @@ están en [`docs/architecture.md`](docs/architecture.md).
 | `backend/infra/` | **Infraestructura real desplegada** (Terraform) |
 | `frontend/code/` | Aplicación Angular |
 | `database/` | Modelo de datos y carga de datos de ejemplo |
-| `docs/` | Documentación de arquitectura, planificación y mejoras propuestas |
+| `docs/` | Documentación de arquitectura, memoria, mejoras propuestas y registro de cambios |
+| `lambdas/import-races/` | Función de importación periódica de carreras |
 | `deploy.ps1` | Despliegue completo automatizado (Windows) |
 | `.github/workflows/` | Pipelines de integración continua y de despliegue |
+
+Documentos de referencia:
+
+| Documento | Para qué |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Especificación técnica detallada |
+| [`docs/memoria.md`](docs/memoria.md) | Memoria del proyecto |
+| [`docs/mejoras-propuestas.md`](docs/mejoras-propuestas.md) | Trece puntos de mejora con su estado |
+| [`docs/cambios-29-07-2026.md`](docs/cambios-29-07-2026.md) | Registro de la última sesión de trabajo |
+| [`backend/README.md`](backend/README.md) | Procedimiento manual y pruebas en local |
+| [`database/README.md`](database/README.md) | Modelo de datos y su evolución |
 
 ### Desarrollos paralelos e histórico
 

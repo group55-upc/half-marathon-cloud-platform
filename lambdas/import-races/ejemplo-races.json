@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Mitja Marató de Granollers",
+    "city": "Granollers",
+    "country": "Spain",
+    "date": "2027-02-07",
+    "web": "https://www.mitjagranollers.cat",
+    "distance": 21.0975
+  },
+  {
+    "name": "Behobia - San Sebastián",
+    "city": "San Sebastián",
+    "country": "Spain",
+    "date": "2027-11-14",
+    "web": "https://www.behobia-sansebastian.com",
+    "distance": 20
+  },
+  {
+    "name": "Media Maratón de Sevilla",
+    "city": "Sevilla",
+    "country": "Spain",
+    "date": "2027-01-24",
+    "web": "https://www.mediamaratonsevilla.com",
+    "distance": 21.0975
+  },
+  {
+    "name": "Rotterdam Half Marathon",
+    "city": "Rotterdam",
+    "country": "Netherlands",
+    "date": "2027-04-11",
+    "web": "https://www.nnmarathonrotterdam.org",
+    "distance": 21.0975
+  },
+  {
+    "name": "Vienna Half Marathon",
+    "city": "Vienna",
+    "country": "Austria",
+    "date": "2027-04-18",
+    "web": "https://www.vienna-marathon.com",
+    "distance": 21.0975
+  }
+]

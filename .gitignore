@@ -1,9 +1,18 @@
 # Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.plan
+
+# .terraform.lock.hcl SÍ debe versionarse: fija las versiones exactas de los
+# proveedores y sus huellas criptográficas, garantizando que todo el equipo
+# aplique con las mismas. Es la recomendación oficial de HashiCorp y el mismo
+# argumento que se aplica al package-lock.json.
+# (regla anterior '.terraform.lock.hcl' retirada por ese motivo)
+
+# Variables locales con datos personales (correos del equipo).
+# La plantilla versionada es terraform.tfvars.example
+terraform.tfvars
 
 # Nodejs
 node_modules/
@@ -168,6 +177,9 @@ vite.config.ts.timestamp-*
 # Archivos temporales de bloqueo de Microsoft Office
 # (se crean al abrir un .docx o .xlsx y no deben versionarse)
 ~$*
+
+# Salida de 'aws lambda invoke'
+respuesta.json
 
 # Cache del compilador de Angular
 .angular/

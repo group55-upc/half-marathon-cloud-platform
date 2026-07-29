@@ -1,7 +1,17 @@
 # Mejoras propuestas
 
-Revisión del estado del repositorio y del despliegue a 28/07/2026, tras conseguir el
-primer despliegue completo end-to-end (frontend en S3 → ALB → ECS Fargate → DynamoDB).
+Revisión del estado del repositorio y del despliegue, iniciada el 28/07/2026 tras
+conseguir el primer despliegue completo end-to-end (frontend en S3 → ALB → ECS Fargate
+→ DynamoDB).
+
+> **Estado a 29/07/2026.** Ocho de los trece puntos están **resueltos**. Cada uno lleva
+> su estado al inicio. Los pendientes son los que requieren acuerdo del equipo o un
+> redespliegue, no los que estaban al alcance de una sesión de trabajo.
+>
+> | Estado | Puntos |
+> |---|---|
+> | Resueltos | 1, 3, 4, 6 (el defecto), 7, 7.bis, 9, 10, 11 |
+> | Pendientes de decisión | 2, 5, 6 (el diseño), 8, 12, 13 |
 
 Nada de lo que sigue impide que la plataforma funcione: **funciona**. Son puntos que
 conviene decidir en equipo, unos porque son riesgos reales y otros porque afectan a
@@ -13,7 +23,7 @@ Cada punto lleva prioridad, el problema, la solución concreta y el esfuerzo est
 
 ## Prioridad alta
 
-### 1. La documentación describe una arquitectura que no existe
+### 1. La documentación describe una arquitectura que no existe  ·  RESUELTO
 
 **Problema.** El `README.md` de la raíz y el `docs/architecture.md` describen:
 
@@ -42,7 +52,7 @@ cuenta en contra.
 
 ---
 
-### 2. La URL del backend está escrita dentro del código fuente
+### 2. La URL del backend está escrita dentro del código fuente  ·  PENDIENTE
 
 **Problema.** En `frontend/code/src/app/services/race.service.ts`:
 
@@ -87,7 +97,7 @@ plantilla — el mismo patrón que ya usa Miquel con su `.env.example`.
 
 ---
 
-### 3. El código fuente del frontend se está publicando en el bucket público
+### 3. El código fuente del frontend se está publicando en el bucket público  ·  RESUELTO
 
 **Problema.** En `frontend/code/angular.json`:
 
@@ -122,7 +132,7 @@ del bucket los archivos que ya no deberían estar).
 
 ## Prioridad media
 
-### 4. El backend vive en una sola zona de disponibilidad
+### 4. El backend vive en una sola zona de disponibilidad  ·  RESUELTO
 
 **Problema.** En `backend/infra/main.tf` hay dos subredes públicas (una por AZ) pero
 **una sola subred privada**, fijada a la primera zona:
@@ -158,7 +168,7 @@ rutas, los tres VPC endpoints de tipo Interface (`ecr.api`, `ecr.dkr`, `logs`) y
 
 ---
 
-### 5. El despliegue necesita dos pasadas manuales
+### 5. El despliegue necesita dos pasadas manuales  ·  PENDIENTE
 
 **Problema.** El procedimiento actual obliga a: aplicar con `enable-ECS = false`,
 construir y subir la imagen a ECR, cambiar la variable a `true` y volver a aplicar.
@@ -185,7 +195,7 @@ la 3 es la que demuestra criterio.
 
 ---
 
-### 6. Los filtros del backend no se usan, y además tienen un bug
+### 6. Los filtros del backend no se usan, y además tienen un bug  ·  DEFECTO CORREGIDO, DISEÑO PENDIENTE
 
 **Problema.** Son dos cosas entrelazadas.
 
@@ -233,7 +243,7 @@ conversación.
 
 ---
 
-### 7. La caché del compilador de Angular está versionada
+### 7. La caché del compilador de Angular está versionada  ·  RESUELTO
 
 **Problema.** `frontend/code/.angular/cache/` está comiteada en el repositorio. Son
 archivos temporales que Angular regenera solos. Al compilar con una versión distinta
@@ -256,7 +266,44 @@ toca muchos archivos.
 
 ---
 
-### 8. El repositorio tiene tres implementaciones paralelas
+### 7.bis. El `.terraform.lock.hcl` no está versionado  ·  RESUELTO
+
+**Problema.** El `.gitignore` excluye `.terraform.lock.hcl`. Ese archivo fija las
+**versiones exactas de los proveedores de Terraform** y sus huellas
+criptográficas, y HashiCorp recomienda explícitamente versionarlo. Terraform lo
+avisa cada vez que cambia:
+
+```
+Terraform has made some changes to the provider dependency selections recorded
+in the .terraform.lock.hcl file. Review those changes and commit them to your
+version control system if they represent changes you intended to make.
+```
+
+**Por qué importa.** Sin él, cada integrante puede acabar con una versión
+distinta del proveedor de AWS. Un `terraform apply` que funciona en un equipo
+puede fallar en otro, o peor, generar un plan diferente sobre la misma
+configuración. Es exactamente el mismo argumento que llevó a versionar el
+`package-lock.json`.
+
+**Solución.**
+
+```bash
+# Retirar la regla del .gitignore
+# (quitar la línea: .terraform.lock.hcl)
+
+git add -f backend/infra/.terraform.lock.hcl
+git commit -m "chore: versionar el lock de proveedores de Terraform"
+```
+
+**Riesgo.** Ninguno. Si en el futuro alguien quiere actualizar un proveedor, lo
+hace con `terraform init -upgrade` y comitea el lock actualizado, que queda
+registrado en el historial como un cambio deliberado.
+
+**Esfuerzo.** 5 minutos.
+
+---
+
+### 8. El repositorio tiene tres implementaciones paralelas  ·  RESUELTO (documentado en el README)
 
 **Problema.** Conviven `backend/` + `frontend/` (la versión oficial), `Miquel/`
 (implementación individual completa con su propio backend, frontend e infraestructura
@@ -273,7 +320,7 @@ y qué son desarrollos paralelos, y por qué existen.
 
 ## Prioridad baja
 
-### 9. El CI/CD es un esqueleto vacío
+### 9. El CI/CD es un esqueleto vacío  ·  RESUELTO
 
 `.github/workflows/backend-ci.yml` ejecuta literalmente:
 
@@ -290,7 +337,7 @@ impresión que no tener pipeline, porque parece algo empezado y abandonado.
 
 ---
 
-### 10. Dependencias sin usar en el backend
+### 10. Dependencias sin usar en el backend  ·  RESUELTO
 
 `backend/code/package.json` declara `aws-sdk` (la v2 completa, cuando el código usa la
 v3 modular), `pg` (PostgreSQL, que ya no se usa), `jsonwebtoken` (previsto pero no
@@ -312,7 +359,7 @@ bonito para la memoria.
 
 ---
 
-### 11. Los scripts SQL ya no corresponden a la base de datos
+### 11. Los scripts SQL ya no corresponden a la base de datos  ·  RESUELTO
 
 `database/schema.sql` y `database/seed.sql` son SQL para PostgreSQL. DynamoDB no
 entiende SQL, así que son inservibles tal cual.
@@ -330,9 +377,49 @@ para la implementación real.
 
 ---
 
+### 13. El nombre del bucket impide trabajar en paralelo  ·  PENDIENTE
+
+**Problema.** En `backend/infra/main.tf`:
+
+```hcl
+resource "aws_s3_bucket" "s3-website" {
+  bucket = "marathon-cloudupc-website"
+```
+
+Los nombres de bucket de S3 son **únicos a escala mundial**, en todas las cuentas de
+AWS del planeta, no por cuenta. Se comportan como un dominio de internet, no como un
+nombre de carpeta.
+
+**Consecuencia.** Solo **una** persona del equipo puede tener la infraestructura
+desplegada a la vez. Si alguien más ejecuta `terraform apply`, falla con
+`BucketAlreadyExists`.
+
+**Solución.** Añadir el identificador de cuenta al nombre, que es distinto para cada
+integrante:
+
+```hcl
+data "aws_caller_identity" "actual" {}
+
+resource "aws_s3_bucket" "s3-website" {
+  bucket        = "marathon-cloudupc-website-${data.aws_caller_identity.actual.account_id}"
+  force_destroy = true
+  tags          = local.tags
+}
+```
+
+Cada persona obtiene así su propio bucket automáticamente, sin configurar nada.
+
+**Contrapartida.** Cambiar el nombre de un bucket obliga a **destruirlo y recrearlo**,
+y la URL de la web cambia. Requiere por tanto un redespliegue coordinado, y conviene
+avisar al equipo porque cualquier enlace guardado dejará de funcionar.
+
+**Esfuerzo.** 10 minutos de código, más un redespliegue.
+
+---
+
 ## Limitaciones conocidas: documentar, no arreglar
 
-### 12. Toda la plataforma va por HTTP sin cifrar
+### 12. Toda la plataforma va por HTTP sin cifrar  ·  NO VIABLE EN EL LABORATORIO
 
 El frontend se sirve desde el endpoint de web estática de S3, que **solo soporta
 HTTP** por diseño de AWS. El ALB tiene únicamente un listener en el puerto 80.
