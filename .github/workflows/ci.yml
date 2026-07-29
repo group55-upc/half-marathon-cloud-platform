@@ -25,16 +25,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # OJO: providers.tf declara required_version = ">= 1.10.0".
+      # Fijar una version inferior hace que 'init' rechace la configuracion.
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.9.8"
+          terraform_version: latest
 
-      # Informativo: el formato del código existente no sigue la convención
-      # de 'terraform fmt'. Se reporta sin bloquear el pipeline.
+      - name: Mostrar la versión instalada
+        run: terraform version
+
+      # Informativo: el formato del código existente no sigue la convención de
+      # 'terraform fmt'. Se reporta como aviso, sin marcar el paso en rojo.
       - name: Comprobar formato (informativo)
-        run: terraform fmt -check -recursive -diff backend/infra
-        continue-on-error: true
+        run: |
+          if terraform fmt -check -recursive -diff backend/infra; then
+            echo "El formato sigue la convención de terraform fmt"
+          else
+            echo "::notice::Hay diferencias de formato respecto a 'terraform fmt'. No bloquea el pipeline."
+          fi
 
       # -backend=false evita necesitar credenciales ni acceso al estado.
       - name: Inicializar sin backend
@@ -121,30 +130,41 @@ jobs:
         working-directory: backend/code
 
       # Trivy analiza la imagen: sistema base y dependencias de Node.
-      # exit-code 0 = informativo. Cambiar a 1 para bloquear el pipeline
+      #
+      # Se usa la imagen oficial de Trivy en lugar de la acción de GitHub para
+      # no depender de una versión concreta de la acción, que fue lo que hizo
+      # fallar la primera ejecución de este pipeline.
+      #
+      # --exit-code 0 = informativo. Cambiar a 1 para bloquear el pipeline
       # cuando el equipo decida imponer un umbral de vulnerabilidades.
       - name: Analizar vulnerabilidades con Trivy
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: marathon-backend:ci
-          format: table
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "0"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/salida" \
+            aquasec/trivy:latest image \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format table \
+              marathon-backend:ci
 
-      - name: Generar informe de vulnerabilidades
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: marathon-backend:ci
-          format: sarif
-          output: trivy-resultados.sarif
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "0"
+      - name: Generar informe de vulnerabilidades en JSON
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/salida" \
+            aquasec/trivy:latest image \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format json \
+              --output /salida/trivy-resultados.json \
+              marathon-backend:ci
 
       - name: Publicar el informe como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: trivy-resultados
-          path: trivy-resultados.sarif
+          path: trivy-resultados.json
           retention-days: 7
