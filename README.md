@@ -89,25 +89,149 @@ documental:
 
 ## Despliegue
 
-### Requisitos
+> **Antes de nada: solo una persona del equipo puede tener la infraestructura
+> desplegada a la vez.** El nombre del bucket de S3 está fijado en el código, y los
+> nombres de bucket son únicos a escala mundial en AWS, no por cuenta. Si otro
+> integrante ya tiene el despliegue levantado, el `terraform apply` fallará con
+> `BucketAlreadyExists`. Coordinadlo antes de empezar.
 
-- AWS CLI v2, Terraform 1.x, Docker Desktop (arrancado), Node.js 24
-- Credenciales válidas de AWS Academy con el laboratorio **arrancado**
-- Región `us-east-1` (está fijada en el código y en la configuración)
+### Requisitos previos
+
+**1. Herramientas.** Las cuatro deben estar instaladas y accesibles desde el PATH:
+
+| Herramienta | Versión | Comando de verificación |
+|---|---|---|
+| AWS CLI | v2 | `aws --version` |
+| Terraform | 1.x | `terraform version` |
+| Docker Desktop | reciente | `docker --version` |
+| Node.js + npm | 24.x | `node -v` y `npm -v` |
+
+Si acabas de instalar alguna, **cierra y vuelve a abrir la terminal**: el PATH no se
+actualiza en las ventanas ya abiertas.
+
+**2. Docker Desktop arrancado.** No basta con tenerlo instalado. Ábrelo y espera a que
+la barra inferior indique *Engine running*. Verificación:
+
+```powershell
+docker info
+```
+
+Si devuelve información del sistema, está listo. Los avisos sobre `blkio` o WSL2 son
+normales e inofensivos.
+
+**3. Laboratorio de AWS Academy arrancado.** Entra en el laboratorio y pulsa **Start
+Lab**. Espera a que el indicador se ponga **verde**.
+
+**4. Credenciales configuradas.** En el laboratorio, pulsa **AWS Details** →
+**AWS CLI: Show** y copia el bloque completo. Pégalo en el archivo de credenciales,
+sustituyendo su contenido anterior:
+
+```powershell
+# Crear el archivo la primera vez
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.aws" | Out-Null
+New-Item -ItemType File -Force -Path "$env:USERPROFILE\.aws\credentials" | Out-Null
+
+# Abrirlo para pegar las credenciales
+notepad "$env:USERPROFILE\.aws\credentials"
+```
+
+El contenido debe quedar así, incluida la línea `[default]`:
+
+```ini
+[default]
+aws_access_key_id=ASIA...
+aws_secret_access_key=...
+aws_session_token=...
+```
+
+Y la configuración de región, solo la primera vez:
+
+```powershell
+Set-Content "$env:USERPROFILE\.aws\config" "[default]`nregion = us-east-1`noutput = json"
+```
+
+> Las credenciales del laboratorio **caducan cada pocas horas** y con cada reinicio de
+> la sesión. Cuando veas errores de autorización simultáneos en todos los servicios,
+> la causa es siempre esta: reinicia el laboratorio y repite este paso.
+
+**5. Comprobación final.** Este comando debe devolver tu cuenta y tu ARN:
+
+```powershell
+aws sts get-caller-identity
+```
+
+Si falla con `AccessDenied`, `ExpiredToken` o una mención a `voc-cancel-cred`, el
+laboratorio no está arrancado o las credenciales están caducadas.
+
+**6. Región.** El despliegue funciona únicamente en `us-east-1`. La región está fijada
+en `backend/code/db.js`, en `backend/infra/variables.tf`, en los nombres de servicio de
+los VPC endpoints y en el propio script.
 
 ### Automatizado (Windows)
 
 ```powershell
+cd <raíz del repositorio>
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\deploy.ps1
 ```
 
-Ejecuta las ocho fases del despliegue en orden, comprueba cada una antes de continuar
-y espera a que el backend responda antes de publicar el frontend. Tarda entre 10 y 15
-minutos. Al final imprime las URLs.
+`Set-ExecutionPolicy` con `-Scope Process` levanta el bloqueo de scripts **solo en esa
+ventana de PowerShell**; al cerrarla vuelve al estado original. No modifica nada
+permanente en el sistema.
+
+El script ejecuta las ocho fases del despliegue en orden, verifica el resultado de cada
+una antes de continuar y espera a que el backend responda antes de publicar el
+frontend. Al final imprime las URLs.
+
+| | Primer despliegue | Redespliegue |
+|---|---|---|
+| Duración | 10–15 min | ~2 min |
+
+La fase más lenta es la creación del Application Load Balancer, unos 3 minutos. La fase
+6 (*Esperando a que el backend esté disponible*) imprime `esperando... intento N de 40`
+y puede parecer bloqueada: es el arranque normal de las tareas Fargate, entre 1 y 3
+minutos.
+
+**No cierres la ventana durante el despliegue.**
 
 Opciones: `-SkipFrontend` para desplegar solo la infraestructura y el backend,
 `-SkipSeed` para no cargar datos de ejemplo.
+
+### Verificación posterior
+
+```powershell
+# La API responde
+Invoke-RestMethod "http://<url-del-alb>/"            # → status ok
+
+# La API alcanza la base de datos
+Invoke-RestMethod "http://<url-del-alb>/connection"  # → status ok
+
+# Hay datos
+Invoke-RestMethod "http://<url-del-alb>/races"       # → 12 carreras
+```
+
+Y abre la web en el navegador. **Con `http://`, nunca `https://`** (ver la tabla de
+errores). Debe mostrar las carreras y el indicador *Service Online* en verde.
+
+En PowerShell usa `Invoke-RestMethod`, no `curl`: en PowerShell `curl` es un alias de
+`Invoke-WebRequest` y muestra un aviso de seguridad. Si necesitas el `curl` auténtico,
+invócalo como `curl.exe`.
+
+### Errores frecuentes
+
+| Error | Causa | Solución |
+|---|---|---|
+| `AccessDenied` o `voc-cancel-cred` en todos los servicios | La sesión del laboratorio está detenida | **Start Lab** y renovar las credenciales |
+| `ExpiredToken` | Credenciales caducadas | Renovar las credenciales |
+| `no se puede cargar porque la ejecución de scripts está deshabilitada` | Política de ejecución de PowerShell | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` |
+| `No encuentro 'terraform'` (o docker, aws, npm) | No instalado, o terminal abierta antes de instalarlo | Instalar y **abrir una terminal nueva** |
+| `Docker esta instalado pero no responde` | Docker Desktop cerrado | Arrancarlo y esperar a *Engine running* |
+| `BucketAlreadyExists` | Otro integrante tiene la infraestructura desplegada | Esperar a que la destruya, o dar nombres de bucket distintos |
+| `CannotPullContainerError` en las tareas ECS | El servicio se creó antes de existir la imagen en ECR | El script lo evita. Si ocurre manualmente: subir la imagen y forzar un nuevo despliegue del servicio |
+| `400 Bad Request` en el login contra ECR | PowerShell añade `\r\n` al canalizar el token | Resuelto en el script. Manualmente, ejecutar el login desde `cmd.exe` |
+| `ERR_CONNECTION_RESET` al abrir la web | El navegador fuerza HTTPS, y el sitio web de S3 solo admite HTTP | Escribir `http://` explícitamente. Si persiste, desactivar *Usar siempre conexiones seguras* en la configuración del navegador, o usar otro navegador |
+| La web carga pero sin datos | La URL del balanceador del frontend no corresponde al despliegue actual | Volver a ejecutar `deploy.ps1`, que la inyecta automáticamente |
+| `terraform destroy` falla con errores de autorización | El laboratorio está detenido | Arrancar el laboratorio antes de destruir |
 
 ### Manual (cualquier sistema)
 
