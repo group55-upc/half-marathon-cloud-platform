@@ -39,7 +39,7 @@ jobs:
       # 'terraform fmt'. Se reporta como aviso, sin marcar el paso en rojo.
       - name: Comprobar formato (informativo)
         run: |
-          if terraform fmt -check -recursive -diff backend/infra; then
+          if terraform fmt -check -recursive -diff infrastructure; then
             echo "El formato sigue la convención de terraform fmt"
           else
             echo "::notice::Hay diferencias de formato respecto a 'terraform fmt'. No bloquea el pipeline."
@@ -48,11 +48,11 @@ jobs:
       # -backend=false evita necesitar credenciales ni acceso al estado.
       - name: Inicializar sin backend
         run: terraform init -backend=false
-        working-directory: backend/infra
+        working-directory: infrastructure
 
       - name: Validar la configuración
         run: terraform validate
-        working-directory: backend/infra
+        working-directory: infrastructure
 
   # --------------------------------------------------------------- frontend
   frontend:
