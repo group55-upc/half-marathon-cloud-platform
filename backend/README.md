@@ -15,7 +15,7 @@ Muntar l'entorn de backend del cloud
 Situarnos al directori corresponent
 
 ```bash
-cd /half-marathon-cloud-platform/backend/infra
+cd /half-marathon-cloud-platform/infrastructure
 ```
 
 Fer un export de les variables de entorn (credencials de aws) a la CLI
@@ -27,10 +27,10 @@ export AWS_SECRET_ACCESS_KEY=[...]
 export AWS_SESSION_TOKEN=[...]
 ```
 
-Desactiva el desplegament del clúster ECS. Modificarem el fitxer backend.auto.tfvars
+Desactiva el desplegament del clúster ECS. Modificarem el fitxer marathon-cloud.auto.tfvars
 
 ```bash
-enable-ECS = false <- Ha d'estar a false
+enable-ECS = false <- Ha d'estar a false (no passa res si està a true)
 ```
 
 Terraform init
@@ -113,10 +113,10 @@ Ara que ja tenim la imatge al ECR, farem MÀGIA!
 Ens situem al directori corresponent
 
 ```bash
-cd /half-marathon-cloud-platform/backend/infra
+cd /half-marathon-cloud-platform/infrastructure
 ```
 
-Modificarem el fitxer backend.auto.tfvars
+Modificarem el fitxer marathon-control.auto.tfvars
 ```bash
 enable-ECS = false <- Ho fiquem a true
 ```

@@ -60,9 +60,9 @@ variable "lambda-import-key" {
 data "archive_file" "import-races" {
   count       = var.enable-lambda ? 1 : 0
   type        = "zip"
-  source_dir  = "${path.module}/../../lambdas/import-races"
-  output_path = "${path.module}/.terraform/import-races.zip"
-  excludes    = ["README.md", "ejemplo-races.json"]
+  source_dir  = "${path.module}/../lambdas/import-races"
+  output_path = "${path.module}/../lambdas/import-races/import-races.zip"
+  excludes    = ["README.md", "ejemplo-races.json", "import-races.zip"]
 }
 
 
@@ -78,7 +78,7 @@ resource "aws_lambda_function" "import-races" {
   description   = "Importa carreras desde un fichero JSON en S3 hacia DynamoDB"
 
   role    = data.aws_iam_role.lab-role.arn
-  runtime = "nodejs20.x"
+  runtime = "nodejs24.x"
   handler = "index.handler"
 
   filename         = data.archive_file.import-races[0].output_path

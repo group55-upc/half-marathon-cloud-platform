@@ -92,6 +92,14 @@ variable "ecs-container-port" {
   default     = 5000
 }
 
+# AMPLIFY
+
+variable "amplify-repository-token" {
+  description = "Personal Git PAT Token to access the repository"
+  type = string
+  sensitive = true
+}
+
 # LOCALS
 
 locals {

@@ -16,7 +16,6 @@ app.use(express.urlencoded({ extended: true }));    //dades en application/x-www
 
 
 
-//id, name, city, country, date, web, distance, file(?) <- NO CONTEMPLA OBTENIR FITXERS (DE MOMENT)
 app.get("/races", async (req, res) => {
   try {
     const params = req.query;
@@ -57,10 +56,6 @@ app.get("/races", async (req, res) => {
       filter.push(`#${key} = :${key}`);
     });
 
-    // console.log("FilterExpression:", filter.join(" AND "));
-    // console.log("ExpressionAttributeNames:", JSON.stringify(paramNames));
-    // console.log("ExpressionAttributeValues:", JSON.stringify(paramValues));
-
     do {
         const { Items, LastEvaluatedKey } = await dbClient.send(new ScanCommand({
             TableName: "races",
@@ -69,27 +64,19 @@ app.get("/races", async (req, res) => {
             ExpressionAttributeValues: paramValues,
             ExclusiveStartKey: lastKey
         }));
-        // console.log(Items);
         races = races.concat(Items);
         lastKey = LastEvaluatedKey;
     } while (lastKey);
 
     if (!races.length) return res.status(404).json({ error: "race not found" });
-    // console.log(races)
     res.status(200).json(races);
 
   } catch (error) {
-    // console.error("Database error:", error);
     res.status(500).json({ error: "database error" });
   }
 });
 
-//FALTA UN METODE PER GENERAR ID RANDOM; dynamo es noSQL, no te id
-//hi ha un paqurt que es diu uuid que tmb genera id random, pero es crfear una dependencia d'un paquet
-// const id = uuidv4(); #npm install uuid
-// primer de tot seria ingresar el file, que retorni el path i afeguir el path en la mateixa crida de Put de la carrera,
-// de manera que aixi ens estalviem una trucada a dynamo -> -$
-//id, name, city, country, date, web, distance, file(?) <- NO CONTEMPLA PUJAR FITXERS (DE MOMENT)
+
 app.post("/races", async (req, res) => {
     try {
         const id = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -105,7 +92,6 @@ app.post("/races", async (req, res) => {
                 distance: req.body.distance
             }
         }))
-        // console.log(response);
         res.status(200).json({status: "ok"});
 
     } catch (error) {
@@ -113,28 +99,6 @@ app.post("/races", async (req, res) => {
     }
 });
 
-
-// curl -X POST http://localhost:5000/races \
-//   -H "Content-Type: application/json" \
-//   -d '{
-//     "name": "Madrid Marathon",
-//     "city": "Madrid",
-//     "country": "Spain",
-//     "date": "2026-03-15",
-//     "web": "https://madridmarathon.com",
-//     "distance": 42
-//   }'
-
-// curl -X POST http://localhost:5000/races \
-//   -H "Content-Type: application/json" \
-//   -d '{
-//     "name": "Barcelona Marathon",
-//     "city": "Barcelona",
-//     "country": "Spain",
-//     "date": "2026-03-15",
-//     "web": "https://barcelonamarathon.com",
-//     "distance": 42
-//   }'
 
 app.get("/connection", async (req, res) => {
     try  {

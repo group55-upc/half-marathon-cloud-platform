@@ -1,3 +1,6 @@
+enable-ECS = true
+
+
 ###############################################################################
 # PLANTILLA DE VARIABLES LOCALES
 #
@@ -21,9 +24,9 @@
 #
 # Cada direccion recibira un mensaje de AWS con un enlace "Confirm
 # subscription" que debe pulsar. Hasta entonces no le llegara ninguna alarma.
-alert-emails = [
-  "tu.correo@ejemplo.com",
-]
+# alert-emails = [
+#   "tu.correo@ejemplo.com",
+# ]
 
 
 # --- Ajustes opcionales del escalado automatico ---
