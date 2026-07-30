@@ -3,7 +3,7 @@
 *.tfstate
 *.tfstate.*
 *.plan
-
+*.lock.hcl
 # .terraform.lock.hcl SÍ debe versionarse: fija las versiones exactas de los
 # proveedores y sus huellas criptográficas, garantizando que todo el equipo
 # aplique con las mismas. Es la recomendación oficial de HashiCorp y el mismo
