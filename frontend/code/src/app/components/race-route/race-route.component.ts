@@ -118,15 +118,22 @@ export class RaceRouteComponent
     ).addTo(this.map);
 
     /*
-     * 1. Draw the route.
+     * Draw the route using a stronger visual style.
      */
     const routeLayer = L.geoJSON(
-      this.routeData as any
+      this.routeData as any,
+      {
+        style: () => ({
+          color: '#2563eb',
+          weight: 6,
+          opacity: 0.95
+        })
+      }
     ).addTo(this.map);
 
     /*
-     * 2. Establish the map view BEFORE adding
-     *    vector markers.
+     * Establish the map view before adding
+     * START and FINISH markers.
      */
     const bounds = routeLayer.getBounds();
 
@@ -140,8 +147,8 @@ export class RaceRouteComponent
     }
 
     /*
-     * 3. Now that Leaflet has a valid map view,
-     *    add START and FINISH.
+     * Add START and FINISH only after the
+     * Leaflet map has a valid view.
      */
     this.addStartFinishMarkers();
   }
@@ -168,8 +175,7 @@ export class RaceRouteComponent
     }
 
     /*
-     * GeoJSON coordinates use:
-     *
+     * GeoJSON coordinates:
      * [longitude, latitude]
      */
     const firstPoint = coordinates[0];
@@ -183,7 +189,7 @@ export class RaceRouteComponent
     const finishLat = lastPoint[1];
 
     /*
-     * START
+     * START marker
      */
     L.circleMarker(
       [startLat, startLon],
@@ -206,7 +212,7 @@ export class RaceRouteComponent
       );
 
     /*
-     * FINISH
+     * FINISH marker
      */
     L.circleMarker(
       [finishLat, finishLon],
