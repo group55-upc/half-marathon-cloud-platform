@@ -25,7 +25,7 @@ variable "vpc-cidr" {
 variable "dynamodb-name" {
   description = "The name of the DynamoDB"
   type        = string
-  default     = "races" 
+  default     = "races"
 }
 
 # ECR VARIABLES
@@ -33,57 +33,57 @@ variable "dynamodb-name" {
 variable "ecr-name" {
   description = "The name of the ECR"
   type        = string
-  default     = "container-image-repository" 
+  default     = "container-image-repository"
 }
 
 # ECS VARIABLES
 
 variable "enable-ECS" {
-    description = "Enable the creation of the ECS cluster"
-    type = bool
-    default = false
+  description = "Enable the creation of the ECS cluster"
+  type        = bool
+  default     = false
 }
 
 variable "ecs-cluster-name" {
   description = "The name of the ECS Cluster"
   type        = string
-  default     = "marathon-cluster" 
+  default     = "marathon-cluster"
 }
 
 variable "ecs-task-name" {
   description = "The name of the ECS Task"
   type        = string
-  default     = "marathon-task" 
+  default     = "marathon-task"
 }
 
 variable "ecs-task-cpu" {
   description = "CPU of the ECS Task"
   type        = string
-  default     = "512" 
+  default     = "512"
 }
 
 variable "ecs-task-memory" {
   description = "Memory of the ECS Task"
   type        = string
-  default     = "1024" 
+  default     = "1024"
 }
 
 variable "ecs-service-name" {
   description = "The name of the ECS Service"
   type        = string
-  default     = "marathon-service" 
+  default     = "marathon-service"
 }
 
 variable "ecs-service-replicas" {
   description = "Replicas of the ECS Service"
   type        = number
-  default     = 2 
+  default     = 2
 }
 
 variable "ecs-container-name" {
   description = "The name of the ECS Task container name"
   type        = string
-  default     = "backend" 
+  default     = "backend"
 }
 
 variable "ecs-container-port" {
@@ -96,8 +96,9 @@ variable "ecs-container-port" {
 
 variable "amplify-repository-token" {
   description = "Personal Git PAT Token to access the repository"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 # LOCALS

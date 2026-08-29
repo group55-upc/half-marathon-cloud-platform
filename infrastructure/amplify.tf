@@ -1,9 +1,16 @@
+variable "enable-amplify" {
+  description = "Enable AWS Amplify frontend deployment"
+  type        = bool
+  default     = false
+}
 resource "aws_amplify_app" "amplify-frontend" {
-  name          = "marathon-amplify"
-  repository    = "https://github.com/group55-upc/half-marathon-cloud-platform"
-  access_token  = var.amplify-repository-token
+  count = var.enable-amplify ? 1 : 0
 
-    build_spec = file("${path.module}/../frontend/amplify/amplify.yml")
+  name         = "marathon-amplify"
+  repository   = "https://github.com/group55-upc/half-marathon-cloud-platform"
+  access_token = var.amplify-repository-token
+
+  build_spec = file("${path.module}/../frontend/amplify/amplify.yml")
 
   custom_rule {
     source = "/<*>"
@@ -16,8 +23,10 @@ resource "aws_amplify_app" "amplify-frontend" {
 
 
 resource "aws_amplify_branch" "main" {
-  app_id        = aws_amplify_app.amplify-frontend.id
-  branch_name   = "main"
+  count = var.enable-amplify ? 1 : 0
+
+  app_id      = aws_amplify_app.amplify-frontend[0].id
+  branch_name = "main"
 
   enable_auto_build = true
 }

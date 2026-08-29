@@ -7,7 +7,7 @@ output "alb-url" {
 }
 
 output "amplify-url" {
-  value = aws_amplify_app.amplify-frontend.default_domain
+  value = var.enable-amplify ? aws_amplify_app.amplify-frontend[0].default_domain : "(amplify desactivado)"
 }
 
 output "s3-url" {
