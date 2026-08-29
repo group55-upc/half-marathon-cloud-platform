@@ -10,6 +10,19 @@ export interface Race {
   date: string;
   web: string;
   distance: number;
+  routeKey?: string;
+}
+
+export interface RaceRoute {
+  type: 'FeatureCollection';
+  features: Array<{
+    type: 'Feature';
+    properties: Record<string, unknown>;
+    geometry: {
+      type: string;
+      coordinates: unknown;
+    };
+  }>;
 }
 
 @Injectable({
@@ -17,10 +30,13 @@ export interface Race {
 })
 export class RaceService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://alb-backend-1933529975.us-east-1.elb.amazonaws.com';
+
+  private readonly apiUrl =
+    'http://alb-backend-1933529975.us-east-1.elb.amazonaws.com';
 
   getRaces(filters?: Partial<Race>): Observable<Race[]> {
     let params = new HttpParams();
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -28,14 +44,35 @@ export class RaceService {
         }
       });
     }
+
     return this.http.get<Race[]>(`${this.apiUrl}/races`, { params });
   }
 
+  getRace(id: string): Observable<Race> {
+    const params = new HttpParams().set('id', id);
+
+    return this.http.get<Race>(
+      `${this.apiUrl}/races`,
+      { params }
+    );
+  }
+
+  getRaceRoute(id: string): Observable<RaceRoute> {
+    return this.http.get<RaceRoute>(
+      `${this.apiUrl}/races/${id}/route`
+    );
+  }
+
   createRace(race: Race): Observable<{ status: string }> {
-    return this.http.post<{ status: string }>(`${this.apiUrl}/races`, race);
+    return this.http.post<{ status: string }>(
+      `${this.apiUrl}/races`,
+      race
+    );
   }
 
   checkHealth(): Observable<{ status: string }> {
-    return this.http.get<{ status: string }>(`${this.apiUrl}/`);
+    return this.http.get<{ status: string }>(
+      `${this.apiUrl}/`
+    );
   }
 }

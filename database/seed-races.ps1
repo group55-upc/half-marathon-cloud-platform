@@ -17,7 +17,7 @@ param(
 $endpoint = "$ApiUrl/races"
 
 $carreras = @(
-    @{ name = "Mitja Marato de Barcelona"; city = "Barcelona";  country = "Spain";          date = "2027-02-14"; web = "https://www.edreamsmitjabarcelona.com"; distance = 21.0975 },
+    @{ name = "Mitja Marato de Barcelona"; city = "Barcelona";  country = "Spain";          date = "2027-02-14"; web = "https://www.edreamsmitjabarcelona.com"; distance = 21.0975; routeKey = "routes/barcelona-half-marathon.geojson" },
     @{ name = "Medio Maraton de Madrid";   city = "Madrid";     country = "Spain";          date = "2027-04-11"; web = "https://www.zurichmaratonmadrid.es";     distance = 21.0975 },
     @{ name = "Medio Maraton de Valencia"; city = "Valencia";   country = "Spain";          date = "2027-10-24"; web = "https://mediomaratonvalencia.com";       distance = 21.0975 },
     @{ name = "Lisbon Half Marathon";      city = "Lisbon";     country = "Portugal";       date = "2027-03-14"; web = "https://www.meiamaratonadelisboa.com";   distance = 21.0975 },

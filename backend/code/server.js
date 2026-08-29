@@ -6,9 +6,14 @@ const cors = require("cors");                   // <- tema de seguretat per limi
 
 const { dbClient } = require('./db');
 const { GetCommand, ScanCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const app = express();
 const port = 5000;
+
+const s3Client = new S3Client({
+  region: "us-east-1"
+});
 
 app.use(cors());
 app.use(express.json());                            // dades en application/json
@@ -76,6 +81,44 @@ app.get("/races", async (req, res) => {
   }
 });
 
+app.get("/races/:id/route", async (req, res) => {
+  try {
+    const { Item } = await dbClient.send(new GetCommand({
+      TableName: "races",
+      Key: { id: req.params.id }
+    }));
+
+    if (!Item) {
+      return res.status(404).json({ error: "race not found" });
+    }
+
+    if (!Item.routeKey) {
+      return res.status(404).json({ error: "route not available" });
+    }
+
+    const bucketName = process.env.ROUTES_BUCKET;
+
+    if (!bucketName) {
+      return res.status(500).json({ error: "routes bucket not configured" });
+    }
+
+    const routeObject = await s3Client.send(new GetObjectCommand({
+      Bucket: bucketName,
+      Key: Item.routeKey
+    }));
+
+    const routeGeoJson = await routeObject.Body.transformToString();
+
+    res
+      .status(200)
+      .type("application/geo+json")
+      .send(routeGeoJson);
+
+  } catch (error) {
+    console.error("Error retrieving race route:", error);
+    res.status(500).json({ error: "route retrieval error" });
+  }
+});
 
 app.post("/races", async (req, res) => {
     try {
@@ -89,7 +132,8 @@ app.post("/races", async (req, res) => {
                 country: req.body.country,
                 date: req.body.date,
                 web: req.body.web,
-                distance: req.body.distance
+                distance: req.body.distance,
+                ...(req.body.routeKey ? { routeKey: req.body.routeKey } : {})
             }
         }))
         res.status(200).json({status: "ok"});

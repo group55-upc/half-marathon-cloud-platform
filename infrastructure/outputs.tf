@@ -34,3 +34,8 @@ output "autoscaling" {
     var.ecs-autoscaling-cpu-target
   ) : "(escalado desactivado)"
 }
+
+output "routes-bucket-name" {
+  description = "Private S3 bucket used to store race route GeoJSON files"
+  value       = aws_s3_bucket.race-routes.id
+}
