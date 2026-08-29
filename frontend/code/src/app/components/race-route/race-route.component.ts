@@ -118,21 +118,21 @@ export class RaceRouteComponent
     ).addTo(this.map);
 
     /*
-     * Draw the route using a stronger visual style.
+     * Draw the race route.
      */
     const routeLayer = L.geoJSON(
       this.routeData as any,
       {
         style: () => ({
           color: '#2563eb',
-          weight: 6,
+          weight: 5,
           opacity: 0.95
         })
       }
     ).addTo(this.map);
 
     /*
-     * Establish the map view before adding
+     * Establish a valid map view before adding
      * START and FINISH markers.
      */
     const bounds = routeLayer.getBounds();
@@ -147,8 +147,8 @@ export class RaceRouteComponent
     }
 
     /*
-     * Add START and FINISH only after the
-     * Leaflet map has a valid view.
+     * Add START and FINISH after Leaflet
+     * has established the map view.
      */
     this.addStartFinishMarkers();
   }
@@ -175,7 +175,7 @@ export class RaceRouteComponent
     }
 
     /*
-     * GeoJSON coordinates:
+     * GeoJSON coordinates use:
      * [longitude, latitude]
      */
     const firstPoint = coordinates[0];
@@ -206,8 +206,8 @@ export class RaceRouteComponent
         'START',
         {
           permanent: true,
-          direction: 'top',
-          offset: [0, -10]
+          direction: 'bottom',
+          offset: [0, 10]
         }
       );
 
