@@ -88,7 +88,7 @@ Write-Ok "Cuenta AWS $cuenta"
 Write-Paso "Creando infraestructura base (red, DynamoDB, ECR, S3, ALB)"
 Write-Info "El cluster ECS se crea despues, cuando ya exista la imagen en ECR"
 
-Push-Location (Join-Path $root "backend\infra")
+Push-Location (Join-Path $root "infrastructure")
 try {
     $logInit = terraform init -input=false 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -166,7 +166,7 @@ finally { Pop-Location }
 
 Write-Paso "Desplegando el servicio en ECS Fargate"
 
-Push-Location (Join-Path $root "backend\infra")
+Push-Location (Join-Path $root "infrastructure")
 try {
     terraform apply -auto-approve -input=false -var="enable-ECS=true"
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'terraform apply' de la fase ECS." }
@@ -230,39 +230,52 @@ if ($SkipFrontend) {
 else {
     Write-Paso "Compilando y publicando el frontend"
 
-    # La URL del ALB cambia en cada despliegue, asi que la inyectamos aqui.
-    # (Mientras siga hardcodeada: ver docs/mejoras-propuestas.md, punto 2)
-    $servicio  = Join-Path $root "frontend\code\src\app\services\race.service.ts"
-    $contenido = Get-Content $servicio -Raw
-    $nuevo     = $contenido -replace "private readonly apiUrl = '[^']*';", "private readonly apiUrl = '$api';"
-
-    if ($nuevo -eq $contenido) {
-        Write-Aviso "No he localizado la linea de apiUrl en race.service.ts. Revisala a mano."
-    }
-    else {
-        Set-Content -Path $servicio -Value $nuevo -NoNewline
-        Write-Ok "race.service.ts apuntando a $api"
-    }
-
     Push-Location (Join-Path $root "frontend\code")
     try {
         if (-not (Test-Path "node_modules")) {
             Write-Info "Instalando dependencias de Angular (unos minutos)"
             npm install
-            if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'npm install' del frontend." }
+
+            if ($LASTEXITCODE -ne 0) {
+                Abortar "Fallo 'npm install' del frontend."
+            }
+
             Write-Ok "Dependencias instaladas"
         }
-        else { Write-Ok "Dependencias ya presentes" }
+        else {
+            Write-Ok "Dependencias ya presentes"
+        }
 
         npm run build
-        if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'npm run build'." }
+
+        if ($LASTEXITCODE -ne 0) {
+            Abortar "Fallo 'npm run build'."
+        }
+
         Write-Ok "Frontend compilado"
 
         $salida = Join-Path (Get-Location) "dist\Frontend\browser"
-        if (-not (Test-Path $salida)) { Abortar "No encuentro la carpeta compilada: $salida" }
 
-        # Comprobacion del arreglo 1: no debe haber codigo fuente en la salida
-        $fuentes = Get-ChildItem -Path $salida -Recurse -Filter *.ts -ErrorAction SilentlyContinue
+        if (-not (Test-Path $salida)) {
+            Abortar "No encuentro la carpeta compilada: $salida"
+        }
+
+        # Generamos la configuracion runtime con la URL del ALB actual.
+        # De esta forma el codigo Angular no contiene una URL de backend
+        # especifica del despliegue.
+        $configPath = Join-Path $salida "config.js"
+        $configContenido = "window.__APP_CONFIG__ = {`n  apiUrl: '$api'`n};`n"
+
+        Set-Content -Path $configPath -Value $configContenido -NoNewline
+        Write-Ok "config.js generado con API URL: $api"
+
+        # Comprobacion: no debe haber codigo fuente TypeScript en la salida.
+        $fuentes = Get-ChildItem `
+            -Path $salida `
+            -Recurse `
+            -Filter *.ts `
+            -ErrorAction SilentlyContinue
+
         if ($fuentes) {
             Write-Aviso "La compilacion contiene $($fuentes.Count) archivos .ts. Revisa el bloque 'assets' de angular.json."
         }
@@ -270,11 +283,21 @@ else {
             Write-Ok "La compilacion no contiene codigo fuente"
         }
 
-        aws s3 sync $salida "s3://$bucket" --delete --only-show-errors
-        if ($LASTEXITCODE -ne 0) { Abortar "Fallo la subida a S3." }
+        aws s3 sync `
+            $salida `
+            "s3://$bucket" `
+            --delete `
+            --only-show-errors
+
+        if ($LASTEXITCODE -ne 0) {
+            Abortar "Fallo la subida a S3."
+        }
+
         Write-Ok "Frontend publicado en el bucket $bucket"
     }
-    finally { Pop-Location }
+    finally {
+        Pop-Location
+    }
 }
 
 # --- 8. datos de ejemplo ---------------------------------------------------
@@ -308,5 +331,5 @@ Write-Host "  IMPORTANTE: abre la web con http://, no https." -ForegroundColor Y
 Write-Host "  Los endpoints de web estatica de S3 no soportan HTTPS." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Para no consumir credito cuando acabes:" -ForegroundColor Yellow
-Write-Host "    cd backend\infra ; terraform destroy" -ForegroundColor Yellow
+Write-Host "    cd infrastructure ; terraform destroy" -ForegroundColor Yellow
 Write-Host ""
