@@ -2,6 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+interface AppConfig {
+  apiUrl?: string;
+}
+
+interface AppWindow extends Window {
+  __APP_CONFIG__?: AppConfig;
+}
+
 export interface Race {
   id?: string;
   name: string;
@@ -32,8 +40,9 @@ export class RaceService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://alb-backend-1933529975.us-east-1.elb.amazonaws.com';
-
+    (window as AppWindow).__APP_CONFIG__?.apiUrl ??
+    'http://localhost:5000';
+    
   getRaces(filters?: Partial<Race>): Observable<Race[]> {
     let params = new HttpParams();
 
