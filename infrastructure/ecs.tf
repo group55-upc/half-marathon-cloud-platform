@@ -4,13 +4,13 @@
 # 3. Service -> monitora i s'encarrega de que estiguin les còpies que indiquin. l'equivalent a un deploymenty de k8s
 
 data "aws_iam_role" "lab-role" {
-  name      = "LabRole"
+  name = "LabRole"
 }
 
 resource "aws_ecs_cluster" "ecs-cluster-one" {
-    count   = var.enable-ECS ? 1 : 0
-    name    = var.ecs-cluster-name
-    tags    = local.tags
+  count = var.enable-ECS ? 1 : 0
+  name  = var.ecs-cluster-name
+  tags  = local.tags
 }
 
 resource "aws_ecs_task_definition" "ecs-task-one" {
@@ -31,10 +31,10 @@ resource "aws_ecs_task_definition" "ecs-task-one" {
   container_definitions = jsonencode([
     {
       name      = "${var.ecs-container-name}"
-      image     = "${aws_ecr_repository.ecr-repository-images.repository_url}:v1.0"  # <- OPA AMB EL TAG
+      image     = "${aws_ecr_repository.ecr-repository-images.repository_url}:v1.0" # <- OPA AMB EL TAG
       cpu       = 0
       essential = true
-      
+
       portMappings = [
         {
           containerPort = var.ecs-container-port
@@ -42,6 +42,13 @@ resource "aws_ecs_task_definition" "ecs-task-one" {
           protocol      = "tcp"
           name          = "backend-5000-tcp"
           appProtocol   = "http"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "ROUTES_BUCKET"
+          value = aws_s3_bucket.race-routes.id
         }
       ]
 
@@ -60,30 +67,30 @@ resource "aws_ecs_task_definition" "ecs-task-one" {
 
 
 resource "aws_ecs_service" "ecs-service-one" {
-  count               = var.enable-ECS ? 1 : 0
-  name                = var.ecs-service-name
-  cluster             = aws_ecs_cluster.ecs-cluster-one[count.index].id
-  task_definition     = aws_ecs_task_definition.ecs-task-one[count.index].arn
-  desired_count       = var.ecs-service-replicas
-  launch_type         = "FARGATE"
+  count           = var.enable-ECS ? 1 : 0
+  name            = var.ecs-service-name
+  cluster         = aws_ecs_cluster.ecs-cluster-one[count.index].id
+  task_definition = aws_ecs_task_definition.ecs-task-one[count.index].arn
+  desired_count   = var.ecs-service-replicas
+  launch_type     = "FARGATE"
 
   network_configuration {
-    assign_public_ip  = false
-    subnets           = aws_subnet.private[*].id
-    security_groups   = [aws_security_group.sg-ecs-service.id]
+    assign_public_ip = false
+    subnets          = aws_subnet.private[*].id
+    security_groups  = [aws_security_group.sg-ecs-service.id]
   }
 
   load_balancer {
-    container_name    = var.ecs-container-name
-    container_port    = var.ecs-container-port
-    target_group_arn  = aws_alb_target_group.alb-tg-backend.arn
+    container_name   = var.ecs-container-name
+    container_port   = var.ecs-container-port
+    target_group_arn = aws_alb_target_group.alb-tg-backend.arn
   }
 }
 
 ## ECR (Registry) ##
 
 resource "aws_ecr_repository" "ecr-repository-images" {
-    name              = var.ecr-name
-    force_delete      = true
-    tags              = local.tags
+  name         = var.ecr-name
+  force_delete = true
+  tags         = local.tags
 }

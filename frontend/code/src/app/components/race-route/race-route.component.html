@@ -1,0 +1,53 @@
+<section class="route-page">
+
+  <a
+    routerLink="/dashboard"
+    class="back-link">
+    ← Back to races
+  </a>
+
+  @if (race(); as currentRace) {
+    <header class="route-header">
+      <div>
+        <span class="route-label">Race Route</span>
+
+        <h1>
+          {{ currentRace.name }}
+        </h1>
+
+        <p>
+          {{ currentRace.city }},
+          {{ currentRace.country }}
+          ·
+          {{ currentRace.distance }} km
+        </p>
+      </div>
+
+      <a
+        [href]="currentRace.web"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="event-link">
+        Visit Event
+      </a>
+    </header>
+  }
+
+  @if (isLoading()) {
+    <div class="message-card">
+      Loading race route...
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="message-card error">
+      {{ errorMsg() }}
+    </div>
+  }
+
+  <div
+    id="race-map"
+    class="race-map">
+  </div>
+
+</section>

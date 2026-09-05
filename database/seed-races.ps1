@@ -17,16 +17,16 @@ param(
 $endpoint = "$ApiUrl/races"
 
 $carreras = @(
-    @{ name = "Mitja Marato de Barcelona"; city = "Barcelona";  country = "Spain";          date = "2027-02-14"; web = "https://www.edreamsmitjabarcelona.com"; distance = 21.0975 },
-    @{ name = "Medio Maraton de Madrid";   city = "Madrid";     country = "Spain";          date = "2027-04-11"; web = "https://www.zurichmaratonmadrid.es";     distance = 21.0975 },
-    @{ name = "Medio Maraton de Valencia"; city = "Valencia";   country = "Spain";          date = "2027-10-24"; web = "https://mediomaratonvalencia.com";       distance = 21.0975 },
-    @{ name = "Lisbon Half Marathon";      city = "Lisbon";     country = "Portugal";       date = "2027-03-14"; web = "https://www.meiamaratonadelisboa.com";   distance = 21.0975 },
-    @{ name = "Berlin Half Marathon";      city = "Berlin";     country = "Germany";        date = "2027-04-04"; web = "https://www.berlin-halbmarathon.de";     distance = 21.0975 },
+    @{ name = "Mitja Marato de Barcelona"; city = "Barcelona";  country = "Spain";          date = "2027-02-14"; web = "https://www.edreamsmitjabarcelona.com"; distance = 21.0975; routeKey = "routes/barcelona-half-marathon.geojson" },
+    @{ name = "Medio Maraton de Madrid";   city = "Madrid";     country = "Spain";          date = "2027-04-04"; web = "https://www.mediomaratonmadrid.es";      distance = 21.0975; routeKey = "routes/madrid-half-marathon.geojson" },
+    @{ name = "Medio Maraton de Valencia"; city = "Valencia";   country = "Spain";          date = "2027-10-24"; web = "https://mediomaratonvalencia.com";       distance = 21.0975; routeKey = "routes/valencia-half-marathon.geojson" },
+    @{ name = "Lisbon Half Marathon";      city = "Lisbon";     country = "Portugal";       date = "2027-03-14"; web = "https://maratonaclubedeportugal.com";       distance = 21.0975; routeKey = "routes/lisbon-half-marathon.geojson" },
+    @{ name = "Berlin Half Marathon";      city = "Berlin";     country = "Germany";        date = "2027-04-04"; web = "https://www.generali-berliner-halbmarathon.de/en"; distance = 21.0975; routeKey = "routes/berlin-half-marathon.geojson" },
     @{ name = "Paris Half Marathon";       city = "Paris";      country = "France";         date = "2027-03-07"; web = "https://www.semideparis.com";           distance = 21.0975 },
-    @{ name = "Rome-Ostia Half Marathon";  city = "Rome";       country = "Italy";          date = "2027-03-21"; web = "https://www.romaostia.it";              distance = 21.0975 },
-    @{ name = "Great North Run";           city = "Newcastle";  country = "United Kingdom"; date = "2027-09-12"; web = "https://www.greatrun.org";              distance = 21.0975 },
-    @{ name = "Copenhagen Half Marathon";  city = "Copenhagen"; country = "Denmark";        date = "2027-09-19"; web = "https://cphhalf.dk";                    distance = 21.0975 },
-    @{ name = "United NYC Half";           city = "New York";   country = "United States";  date = "2027-03-21"; web = "https://www.nyrr.org";                  distance = 21.0975 },
+    @{ name = "Roma-Ostia Half Marathon";  city = "Rome";       country = "Italy";          date = "2027-02-28"; web = "https://romaostia.it/";                  distance = 21.0975; routeKey = "routes/roma-ostia-half-marathon.geojson" },
+    @{ name = "Great North Run";           city = "Newcastle";  country = "United Kingdom"; date = "2027-09-12"; web = "https://www.greatrun.org";              distance = 21.0975; routeKey = "routes/great-north-run.geojson" },
+    @{ name = "Copenhagen Half Marathon";  city = "Copenhagen"; country = "Denmark";        date = "2027-09-19"; web = "https://cphhalf.dk";                    distance = 21.0975; routeKey = "routes/copenhagen-half-marathon.geojson"},
+    @{ name = "United NYC Half";           city = "New York";   country = "United States";  date = "2027-03-21"; web = "https://www.nyrr.org";                  distance = 21.0975; routeKey = "routes/nyc-half-marathon.geojson" },
     @{ name = "Zurich Marato Barcelona";   city = "Barcelona";  country = "Spain";          date = "2027-03-14"; web = "https://www.zurichmaratobarcelona.es";   distance = 42.195 },
     @{ name = "Berlin Marathon";           city = "Berlin";     country = "Germany";        date = "2027-09-26"; web = "https://www.bmw-berlin-marathon.com";    distance = 42.195 }
 )

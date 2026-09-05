@@ -7,7 +7,7 @@ output "alb-url" {
 }
 
 output "amplify-url" {
-  value = aws_amplify_app.amplify-frontend.default_domain
+  value = var.enable-amplify ? aws_amplify_app.amplify-frontend[0].default_domain : "(amplify desactivado)"
 }
 
 output "s3-url" {
@@ -33,4 +33,9 @@ output "autoscaling" {
     var.ecs-autoscaling-max,
     var.ecs-autoscaling-cpu-target
   ) : "(escalado desactivado)"
+}
+
+output "routes-bucket-name" {
+  description = "Private S3 bucket used to store race route GeoJSON files"
+  value       = aws_s3_bucket.race-routes.id
 }

@@ -1,4 +1,5 @@
-enable-ECS = true
+enable-ECS     = true
+enable-amplify = false
 
 
 ###############################################################################

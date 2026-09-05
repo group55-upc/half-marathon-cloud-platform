@@ -145,13 +145,48 @@
           </div>
 
           <div class="race-card-footer">
-            <a [href]="race.web" target="_blank" rel="noopener" class="btn btn-card-link" [id]="'web-link-' + race.id">
+
+            @if (race.routeKey && race.id) {
+              <a
+                [routerLink]="['/race', race.id, 'route']"
+                class="btn btn-card-link btn-route-link"
+                [id]="'route-link-' + race.id">
+
+                View Route
+
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="16"
+                  viewBox="0 -960 960 960"
+                  width="16"
+                  fill="currentColor">
+                  <path d="m600-120-240-84-186 72q-20 8-37-4t-17-33v-558q0-13 7.5-23t20.5-15l212-75 240 84 186-72q20-8 37 4t17 33v558q0 13-7.5 23T812-195l-212 75Zm-40-98v-468l-160-56v468l160 56Zm80 0 120-42v-466l-120 46v462Zm-440-10 120-46v-468l-120 42v472Zm440-452v462-462Zm-320-62v468-468Z"/>
+                </svg>
+
+              </a>
+            }
+
+            <a
+              [href]="race.web"
+              target="_blank"
+              rel="noopener"
+              class="btn btn-card-link"
+              [id]="'web-link-' + race.id">
+
               Visit Event
-              <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="16"
+                viewBox="0 -960 960 960"
+                width="16"
+                fill="currentColor">
                 <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"/>
               </svg>
+
             </a>
-          </div>
+
+          </div>   
         </div>
       }
     </div>
