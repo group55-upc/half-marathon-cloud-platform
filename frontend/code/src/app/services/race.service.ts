@@ -17,7 +17,7 @@ export interface Race {
 })
 export class RaceService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://alb-backend-343043740.us-east-1.elb.amazonaws.com';
+  private readonly apiUrl = 'https://api.fpcmarathon.upcnet.es';
 
   getRaces(filters?: Partial<Race>): Observable<Race[]> {
     let params = new HttpParams();
