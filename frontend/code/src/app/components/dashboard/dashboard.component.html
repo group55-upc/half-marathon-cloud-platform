@@ -145,6 +145,9 @@
           </div>
 
           <div class="race-card-footer">
+            <a [routerLink]="['/races', race.id]" class="btn btn-card-link" [id]="'view-link-' + race.id">
+              View Details
+            </a>
             <a [href]="race.web" target="_blank" rel="noopener" class="btn btn-card-link" [id]="'web-link-' + race.id">
               Visit Event
               <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">

@@ -14,6 +14,8 @@ import { RaceService, Race } from '../../services/race.service';
 export class AddRaceComponent {
   private readonly raceService = inject(RaceService);
   private readonly router = inject(Router);
+  private readonly allowedTrackExt = ['geojson', 'kml', 'gpx'];
+
 
   // Form fields
   name = '';
@@ -22,6 +24,8 @@ export class AddRaceComponent {
   date = '';
   web = '';
   distance: number | null = null;
+  trackFile: File | null = null;
+
 
   // Feedback states
   isSubmitting = signal<boolean>(false);
@@ -35,8 +39,20 @@ export class AddRaceComponent {
     country: false,
     date: false,
     web: false,
-    distance: false
+    distance: false,
+    track: false
   };
+
+  onTrackFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.trackFile = input.files && input.files.length > 0 ? input.files[0] : null;
+  }
+
+  private isValidTrackFile(file: File | null): boolean {
+    if (!file) return false;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    return !!ext && this.allowedTrackExt.includes(ext);
+  }
 
   onSubmit(): void {
     if (this.isSubmitting()) return;
@@ -48,7 +64,8 @@ export class AddRaceComponent {
       country: false,
       date: false,
       web: false,
-      distance: false
+      distance: false,
+      track: false
     };
 
     let hasErrors = false;
@@ -78,6 +95,10 @@ export class AddRaceComponent {
       this.errors.distance = true;
       hasErrors = true;
     }
+    if (!this.isValidTrackFile(this.trackFile)) {
+      this.errors.track = true;
+      hasErrors = true;
+    } 
 
     if (hasErrors) {
       this.errorMsg.set('Please check the form.');
@@ -96,7 +117,7 @@ export class AddRaceComponent {
       distance: Number(this.distance)
     };
 
-    this.raceService.createRace(newRace).subscribe({
+    this.raceService.createRace(newRace, this.trackFile!).subscribe({ 
       next: (res) => {
         this.isSubmitting.set(false);
         if (res.status === 'ok') {

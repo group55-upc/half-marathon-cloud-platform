@@ -12,7 +12,7 @@ import { RaceService } from './services/race.service';
 export class App implements OnInit {
   private readonly raceService = inject(RaceService);
 
-  protected readonly title = signal('RunTracker SPA');
+  protected readonly title = signal('RaceTracker SPA');
   protected readonly isBackendHealthy = signal<boolean | null>(null);
 
   ngOnInit(): void {

@@ -310,6 +310,8 @@
 .race-card-footer {
   padding: 0 1.25rem 1.25rem 1.25rem;
   border-top: 1px solid transparent;
+  display: flex;
+  gap: 0.75rem;
 }
 
 .btn-card-link {
@@ -317,7 +319,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  width: 100%;
+  flex: 1;
   padding: 0.65rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);

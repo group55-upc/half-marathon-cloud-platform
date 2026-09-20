@@ -10,6 +10,8 @@ export interface Race {
   date: string;
   web: string;
   distance: number;
+  trackUrl?: string;
+  trackType?: 'geojson' | 'kml' | 'gpx';
 }
 
 @Injectable({
@@ -31,8 +33,24 @@ export class RaceService {
     return this.http.get<Race[]>(`${this.apiUrl}/races`, { params });
   }
 
-  createRace(race: Race): Observable<{ status: string }> {
-    return this.http.post<{ status: string }>(`${this.apiUrl}/races`, race);
+  getRaceById(id: string): Observable<Race> {
+    const params = new HttpParams().set('id', id);
+    return this.http.get<Race>(`${this.apiUrl}/races`, { params });
+  }
+
+  // createRace(race: Race): Observable<{ status: string }> {
+  //   return this.http.post<{ status: string }>(`${this.apiUrl}/races`, race);
+  // }
+  createRace(race: Race, trackFile: File): Observable<{ status: string }> {
+    const formData = new FormData();
+    formData.append('name', race.name);
+    formData.append('city', race.city);
+    formData.append('country', race.country);
+    formData.append('date', race.date);
+    formData.append('web', race.web);
+    formData.append('distance', String(race.distance));
+    formData.append('track', trackFile);
+    return this.http.post<{ status: string }>(`${this.apiUrl}/races`, formData);
   }
 
   checkHealth(): Observable<{ status: string }> {

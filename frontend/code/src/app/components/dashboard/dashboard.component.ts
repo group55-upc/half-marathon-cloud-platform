@@ -22,7 +22,7 @@ export class DashboardComponent implements OnInit {
   // Filters
   searchTerm = signal<string>('');
   filterCountry = signal<string>('');
-  filterDistance = signal<string>(''); // 'all', '10', '21', '42', 'other'
+  filterDistance = signal<string>(''); 
 
   // Options for dropdowns
   countries = computed(() => {

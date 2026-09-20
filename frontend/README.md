@@ -1,10 +1,33 @@
-# Instal·lació de l'entorn pel Backend
+# BACKEND
 
-He creat un directori al meu portàtil a on he get un git clone del projecte.
+Codi del frontend de l'aplicació de marathon
 
-Aleshores he creat un directori a banda a on he copiat els arxius del Backend descarregats de Github:
-***$HOME/posgrado_tfp/Backend***
+### NODEJS
 
+Instal·lar nodejs:
+
+```bash
+# Download and install nvm:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
+
+# in lieu of restarting the shell
+\. "$HOME/.nvm/nvm.sh"
+
+# Download and install Node.js:
+nvm install 24
+
+# Verify the Node.js version:
+node -v # Should print "v24.16.0".
+
+# Verify npm version:
+npm -v # Should print "11.13.0".
+```
+
+Instal·lar les dependencies
+
+```bash
+npm install
+```
 
 
 ## Instal·lacio de l'entorn de Node.js i les dependències
@@ -37,70 +60,6 @@ Nota: abans d'arrancar Node.js he hagut de crear la BD a DynamoDB segons les esp
 
 Nota: Abans d'arrancar Node.js cal arrancar l'entorn de Lab d'AWS a on tenim la BD DynamoDB, i cal actualitzar les credencials d'AWS al fitxer ocult .env (recordar que canvien cada cop que iniciem el AWS Lab)
 
-
-
->Notes generades per Gemini al respecte del Backend:
-
-¡Perfecto! Ya tenemos los archivos sobre la mesa. Tienes un backend desarrollado en Node.js usando el framework Express, y su objetivo principal es gestionar un listado de carreras (races), probablemente de atletismo, ciclismo o maratones.
-
-Como base de datos, utiliza Amazon DynamoDB (una base de datos NoSQL en la nube de AWS).
-
-Aquí tienes el análisis completo de qué hace este backend y cómo está estructurado.
-
-🗺️ Arquitectura General de los Archivos
-package.json: Contiene la configuración del proyecto y sus dependencias. Usa Express para el servidor y los SDKs de AWS (@aws-sdk/client-dynamodb y @aws-sdk/lib-dynamodb) para conectarse a la base de datos.
-
-db.js: Se encarga exclusivamente de configurar la conexión con Amazon DynamoDB utilizando variables de entorno para las credenciales de AWS (accessKeyId, secretAccessKey, etc.).
-
-server.js: Es el núcleo de la aplicación. Levanta el servidor en el puerto 5000 y define los endpoints (las rutas) de la API Rest.
-
-🌐 Endpoints Disponibles (La API Rest)
-La API cuenta actualmente con tres endpoints principales que interactúan con una tabla de DynamoDB llamada "races". Los atributos de cada carrera son: id, name, city, country, date, web, y distance.
-
-1. GET /races (Obtener carreras)
-Es un endpoint bastante inteligente y flexible. Funciona de tres formas diferentes según los parámetros que le pases en la URL:
-
-Sin parámetros (/races): Devuelve todas las carreras de la base de datos. Tiene implementado un bucle (do...while) con ExclusiveStartKey para asegurarse de traer todos los registros si la base de datos supera el límite de 1MB por respuesta que tiene DynamoDB.
-
-Por ID (/races?id=VALOR): Si solo le pasas el ID, utiliza un método directo y rápido (GetCommand) para buscar esa carrera específica. Si no existe, devuelve un error 404.
-
-Por filtros (/races?country=Spain&distance=42): Si le pasas cualquier otro parámetro, construye dinámicamente un filtro para buscar coincidencias exactas en la base de datos.
-
-2. POST /races (Crear una carrera)
-Sirve para registrar una nueva carrera en el sistema.
-
-Espera recibir un JSON en el cuerpo de la petición con los datos de la carrera.
-
-Como las bases de datos NoSQL no suelen autogenerar IDs incrementales, el desarrollador creó un generador de IDs propio combinando el timestamp actual con un número aleatorio: ${Date.now()}-${Math.floor(Math.random() * 10000)}.
-
-Si todo sale bien, guarda la carrera y responde con { "status": "ok" }.
-
-3. GET /health (Verificación de estado)
-Es una ruta típica de "salud" del sistema. Intenta hacer una consulta mínima (límite 1 elemento) a la base de datos. Si responde bien, devuelve { "status": "ok" }. Sirve para que sistemas externos sepan si el servidor y la base de datos están corriendo sin problemas.
-
-📝 Notas de desarrollo encontradas (Comentarios en el código)
-El desarrollador dejó varias notas en catalán y español sobre cosas pendientes o cómo funciona el código:
-
-Seguridad: Tiene desactivado temporalmente cors (seguridad para limitar qué webs pueden hacer peticiones) y tiene en mente añadir jsonwebtoken (JWT) y cookies en el futuro para gestionar usuarios e inicios de sesión.
-
-Archivos adjuntos: El código tiene comentarios avisando que aún no soporta la subida de archivos (por ejemplo, folletos de la carrera o imágenes), pero planea integrarlo en el futuro antes de guardar los datos en DynamoDB.
-
-🚀 Cómo ponerlo a correr en tu máquina
-Si quieres probarlo localmente siguiendo los pasos del comando nvm que vimos antes:
-
-Asegúrate de estar en la carpeta donde están estos archivos.
-
-Ejecuta npm install para descargar Express y los módulos de AWS.
-
-Paso crítico: Necesitas crear un archivo llamado .env en la raíz del proyecto con tus credenciales de AWS, de lo contrario fallará al conectarse:
-
-Fragmento de código
-AWS_ACCESS_KEY_ID=tu_clave_aqui
-AWS_SECRET_ACCESS_KEY=tu_secreto_aqui
-AWS_SESSION_TOKEN=tu_token_si_aplica
-Ejecuta npm start para encender el servidor. Verás el mensaje Server listening on port 5000.
-
-Para probarlo, puedes usar las mismas líneas de comandos curl que el desarrollador dejó escritas como ejemplo al final de su archivo server.js.
 
 
 # Context pel Frontend
