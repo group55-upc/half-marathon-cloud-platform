@@ -1,4 +1,3 @@
-//require("dotenv").config();
 const { DynamoDBClient } = require ("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand } = require ("@aws-sdk/lib-dynamodb");
 

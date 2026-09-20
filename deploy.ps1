@@ -27,7 +27,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$root = $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # --- utilidades de salida ---------------------------------------------------
 
@@ -88,7 +88,7 @@ Write-Ok "Cuenta AWS $cuenta"
 Write-Paso "Creando infraestructura base (red, DynamoDB, ECR, S3, ALB)"
 Write-Info "El cluster ECS se crea despues, cuando ya exista la imagen en ECR"
 
-Push-Location (Join-Path $root "backend\infra")
+Push-Location (Join-Path $root "infrastructure")
 try {
     $logInit = terraform init -input=false 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -166,7 +166,7 @@ finally { Pop-Location }
 
 Write-Paso "Desplegando el servicio en ECS Fargate"
 
-Push-Location (Join-Path $root "backend\infra")
+Push-Location (Join-Path $root "infrastructure")
 try {
     terraform apply -auto-approve -input=false -var="enable-ECS=true"
     if ($LASTEXITCODE -ne 0) { Abortar "Fallo 'terraform apply' de la fase ECS." }
@@ -308,5 +308,5 @@ Write-Host "  IMPORTANTE: abre la web con http://, no https." -ForegroundColor Y
 Write-Host "  Los endpoints de web estatica de S3 no soportan HTTPS." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Para no consumir credito cuando acabes:" -ForegroundColor Yellow
-Write-Host "    cd backend\infra ; terraform destroy" -ForegroundColor Yellow
+Write-Host "    cd infrastructure ; terraform destroy" -ForegroundColor Yellow
 Write-Host ""

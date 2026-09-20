@@ -8,42 +8,6 @@ import * as L from 'leaflet';
 import { kml, gpx } from '@tmcw/togeojson';
 import { RaceService, Race } from '../../services/race.service';
 
-// TEMPORARY: set to false once the real API is reachable again.
-const MOCK_MODE = false;
-const MOCK_TRACK_GEOJSON = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [2.1734, 41.3851],
-          [2.1650, 41.3879],
-          [2.1550, 41.3900],
-          [2.1450, 41.3920],
-          [2.1350, 41.3945],
-          [2.1300, 41.3980],
-          [2.1250, 41.4010],
-          [2.1200, 41.4050]
-        ]
-      }
-    }
-  ]
-};
-const MOCK_RACE: Race = {
-  id: 'mock-1',
-  name: 'Barcelona Marathon',
-  city: 'Barcelona',
-  country: 'Spain',
-  date: '2026-03-15',
-  web: 'https://www.zurichmaratobarcelona.es',
-  distance: 42,
-  trackUrl: 'https://fpcmarathon-tracks.s3.amazonaws.com/tracks/mock-1.geojson',
-  trackType: 'geojson'
-};
-
 @Component({
   selector: 'app-race-view',
   standalone: true,
@@ -82,13 +46,6 @@ export class RaceViewComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (MOCK_MODE) {
-      const blob = new Blob([JSON.stringify(MOCK_TRACK_GEOJSON)], { type: 'application/geo+json' });
-      this.race.set({ ...MOCK_RACE, trackUrl: URL.createObjectURL(blob) });
-      this.isLoading.set(false);
-      return;
-    }
-
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.errorMsg.set('No race id provided.');

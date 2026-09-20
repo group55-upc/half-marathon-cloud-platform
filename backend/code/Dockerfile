@@ -6,7 +6,7 @@ COPY package*.json /api/
 
 RUN npm install
 
-COPY server.js db.js /api/
+COPY server.js db.js s3.js /api/
 
 USER node
 EXPOSE 5000

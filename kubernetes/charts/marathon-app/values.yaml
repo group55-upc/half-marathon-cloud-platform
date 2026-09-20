@@ -1,0 +1,41 @@
+
+replicaCount: 2   
+
+image:
+  repository: ""
+  tag: "v1.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+container:
+  name: backend        
+  port: 5000            
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1024Mi
+
+service:
+  type: ClusterIP
+  name: marathon-service
+  port: 5000
+
+
+livenessProbe:
+  enabled: true
+  path: /
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  enabled: true
+  path: /
+  initialDelaySeconds: 5
+  periodSeconds: 10
+

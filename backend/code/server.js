@@ -3,18 +3,24 @@ const express = require("express");
 const cors = require("cors");                   // <- tema de seguretat per limitar desde on es poden fer les crides a la API, de moment esta deactvitat 
 //const jwt = require("jsonwebtoken");             <- gestió de jwt per futurs usuaris
 //const cookieparser = require("cookie-parser");   <- això serveix per poder fer les cookies HttpOnly i tindre un millor xifrat, maxAge, etc
+const multer = require("multer");
 
 const { dbClient } = require('./db');
 const { GetCommand, ScanCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { s3Client } = require('./s3');
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+
 
 const app = express();
 const port = 5000;
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors());
 app.use(express.json());                            // dades en application/json
 app.use(express.urlencoded({ extended: true }));    //dades en application/x-www-form-urlencoded
 
-
+const ALLOWED_TRACK_EXT = ["geojson", "kml", "gpx"];
 
 app.get("/races", async (req, res) => {
   try {
@@ -77,10 +83,33 @@ app.get("/races", async (req, res) => {
 });
 
 
-app.post("/races", async (req, res) => {
+app.post("/races", upload.single("track"), async (req, res) => {
     try {
         const id = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-        const response = await dbClient.send(new PutCommand({
+
+        let trackUrl = null;
+        let trackType = null;
+
+        if (req.file) {
+            const ext = req.file.originalname.split(".").pop().toLowerCase();
+            if (!ALLOWED_TRACK_EXT.includes(ext)) {
+                return res.status(400).json({ error: "unsupported track file type" });
+            }
+
+            const key = `tracks/${id}.${ext}`;
+
+            await s3Client.send(new PutObjectCommand({
+                Bucket: "fpcmarathon-tracks",
+                Key: key,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype
+            }));
+
+            trackUrl = `https://fpcmarathon-tracks.s3.amazonaws.com/${key}`;
+            trackType = ext;
+        }
+
+        await dbClient.send(new PutCommand({
             TableName: "races",
             Item: {
                 id: id,
@@ -89,15 +118,19 @@ app.post("/races", async (req, res) => {
                 country: req.body.country,
                 date: req.body.date,
                 web: req.body.web,
-                distance: req.body.distance
+                distance: req.body.distance,
+                trackUrl: trackUrl,
+                trackType: trackType
             }
-        }))
-        res.status(200).json({status: "ok"});
+        }));
+
+        res.status(200).json({ status: "ok" });
 
     } catch (error) {
-        res.status(500).json({error: "database error"})
+        res.status(500).json({ error: "database error" });
     }
 });
+
 
 
 app.get("/connection", async (req, res) => {

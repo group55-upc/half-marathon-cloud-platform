@@ -1,21 +1,7 @@
 # Kubernetes
 
-Manifests Kubernetes para desplegar el backend en Amazon EKS.
+Conte fitxers relacionats amb les aplicacions i kubernetes
 
-## Owner
+### MARATHON CLOUD APP
 
-Itzel
-
-## Archivos previstos
-
-- namespace.yaml
-- deployment.yaml
-- service.yaml
-- ingress.yaml
-- configmap.yaml
-- secret.example.yaml
-- hpa.yaml
-
-## Objetivo
-
-Desplegar la API Node.js en EKS usando la imagen Docker almacenada en ECR.
+Podem trobar el chart de l'aplicació marathon app. Funciona com a backend, dissenyada per a que el frontend sigui extern.

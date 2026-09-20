@@ -1,0 +1,6 @@
+apiVersion: v2
+name: marathon-cloudupc-app
+description: Helm chart for the marathon backend app
+type: application
+version: 0.1.0
+appVersion: "v1.0"

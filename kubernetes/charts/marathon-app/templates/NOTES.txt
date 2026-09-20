@@ -1,0 +1,15 @@
+{{ include "marathon-app.fullname" . }} deployed.
+
+Service "{{ .Values.service.name }}" listening on port {{ .Values.service.port }} in namespace {{ .Release.Namespace }}.
+
+This Service is expected to be picked up by the TargetGroupBinding managed
+with Terraform, which attaches its pod IPs to your existing ALB target group. 
+
+Check binding status with:
+
+  kubectl get targetgroupbinding -n {{ .Release.Namespace }}
+  kubectl describe targetgroupbinding {{ .Values.service.name }}-tgb -n {{ .Release.Namespace }}
+
+Check pods are Running:
+
+  kubectl get pods -n {{ .Release.Namespace }} -w
