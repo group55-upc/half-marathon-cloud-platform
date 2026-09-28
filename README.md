@@ -16,6 +16,8 @@ El contingut principal es troba als següents directoris:
 
 La infraestructura, així per sobre, es la següent
 
+la inut*l de la fletxa de user cap a alb és possible, però no és la idea, però el gemini gratis no dona per més
+
 ![Image Alt Text](docs/arquitectura1.png)
 
 ![Image Alt Text](docs/arquitectura2.png)
