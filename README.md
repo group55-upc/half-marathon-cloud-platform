@@ -16,6 +16,6 @@ El contingut principal es troba als següents directoris:
 
 La infraestructura, així per sobre, es la següent
 
-![Image Alt Text](assets/arquitectura1.png)
+![Image Alt Text](docs/arquitectura1.png)
 
-![Image Alt Text](assets/arquitectura2.png)
+![Image Alt Text](docs/arquitectura2.png)
