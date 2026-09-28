@@ -1,66 +1,68 @@
 # PLATFORM
 
-El directori infrastructure conté el codi de Terraform que s'ecnarrega de gestionar la infraestructura cloud generica, load balancers, vpc, clusters eks, etc
+El directori _platform_ conté dos subdirectoris, _infrastructure_ i _cluster_
 
-El directori cluster conté el codi de Terraform que gestiona recursos de kubernetes, en aquest cas de l'únic clúster EKS del que disposem.
+El directori _infrastructure_ conté la configuració de Terraform que gestiona la infraestructura cloud genèrica, load balancers, vpc, clústers eks, etc. A continuació es llisten els fitxers i que conté cadascun.
+
+El directori _cluster_ conté la configuració de Terraform que gestiona recursos de kubernetes dins del clúster eks. És on es defineixen recursos com deployments, configmaps, o els helm releases de les nostres aplicacions. Aquesta configuració **no** gestiona la infraestructura del clúster (nodes, xarxa, etc), únicament gestiona components de kubernetes.
 
 ### INFRASTRUCTURE
 
-`alb.tf`:
+Conté els següents fitxers:
 
-`amplify.tf`:
+`alb.tf`: Configuració de Terraform relacionada amb el aplication load balancer que s'encarrega d'enviar el tràfic, en aquest cas, al clúster eks
 
-`autoscaling.tf`:
+`amplify.tf`: Configuració del frontend de l'aplicació marathon-app desplegat amb amplify
 
-`backend.tf`:
+`autoscaling.tf`: Polítiques d'autoescalat dels nodes workers del clúster eks
 
-`cert.tf`:
+`cert.tf`: Configuració del Amazon Cert Manager per generar un certificat per al alias dns que apunta al nom dns del alb
 
-`cloudwatch.tf`:
+`cloudwatch.tf`: Alarmes de monitoratge dels nodes workers del clúster eks
 
-`dynamodb.tf`:
+`dynamodb.tf`: Base de dades de l'aplicació marathon-app
 
-`ecr.tf`:
+`ecr.tf`: Configuració del registry privat on publicar imatges de contenidors
 
-`eks.tf`:
+`eks.tf`: Configuració del clúster eks, dataplane, worker nodes i accessos
 
-`endpoints.tf`:
+`endpoints.tf`: Configuració dels vpc endpoints per permetre cert tipus de tràfic dins les subxarxes privades
 
-`lambda.tf`:
+`lambda.tf`: Funció per importar curses, Itzel
 
-`routing.tf`:
+`routing.tf`: Configuració de la subzona delegada del Route53 i aliàs del nom dns del alb
 
-`s3.tf`:
+`s3.tf`: Buckets per el frontend de l'aplicació marathon-app i bucket d'emmagatzematge de les curses de l'aplicació marathon-app
 
-`sg.tf`:
+`sg.tf`: Configuració dels diferents security groups dins la vpc
 
-`sns.tf`:
+`sns.tf`: Tòpic i subscripció per rebre quan salten les alarmes de cloudwatch
 
-`vpc.tf`:
+`vpc.tf`: Configuració de xarxa, vpc, subxarxes, nat, etc
 
-`control.auto.tfvars`:
+`data.tf`: Recursos de data per obtenir informació sobre infraestructura existent, sobretot relacionada amb el LabRole
 
-`data.tf`:
+`outputs.tf`: Definició de diferents ouputs relacionats, sobretot, amb accessos web
 
-`outputs.tf`:
+`providers.tf`: Definició i configuració dels _providers_ necessaris per a la configuració, en aquest cas _aws_
 
-`providers.tf`:
+`backend.tf`: Configuració del bloc de backend de Terraform, apunta a un s3
 
-`backend.tf`:
+`variables.tf`: Definició de les variables utilitzades 
+
+`control.auto.tfvars`: Declaració dels valors personalitzats de les variables definides a _variables.tf_
 
 ### CLUSTER
 
 Conté els següents fitxers:
 
-`backend.tf`: Configuració del backend cap a un bucket S3 remot
+`backend.tf`: Configuració del bloc de backend de Terraform, apunta a un s3
 
-`providers.tf`: Configuració dels providers necessaris, en aquest cas kubernetes i helm
+`providers.tf`: Definició i configuració dels _providers_ necessaris per a la configuració, en aquest cas _kubernetes_ i _helm_
 
-`data.tf`: Blocs de data que utilitza la configuració de Terraform
+`variables.tf`: Definició de les variables utilitzades 
 
-`variables.tf`: Variables que s'utilitzen als diferents recursos de la configuració de Terraform
-
-`control.auto.tfvars`: Declaració del valors de les diferents variables definides al fitxer variables.tf
+`control.auto.tfvars`: Declaració dels valors personalitzats de les variables definides a _variables.tf_
 
 `k8s-platform.tf`: Recursos de kubernetes relatius al clúster, no conté aplicacions d'usuari, si no de plataforma
 
