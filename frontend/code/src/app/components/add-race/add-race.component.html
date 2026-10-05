@@ -66,16 +66,17 @@
 
         <div class="form-group flex-1">
           <label for="country">Country</label>
-          <input 
-            type="text" 
-            id="country" 
-            name="country" 
-            [(ngModel)]="country" 
+          <select
+            id="country"
+            name="country"
+            [(ngModel)]="country"
             class="form-control"
             [class.is-invalid]="errors.country"
-            placeholder="e.g. United Kingdom"
             required
-          />
+          >
+            <option value="" disabled selected>Select a country</option>
+            <option *ngFor="let c of countries" [value]="c">{{ c }}</option>
+          </select>
           <div class="invalid-feedback" *ngIf="errors.country">
             Country is required.
           </div>

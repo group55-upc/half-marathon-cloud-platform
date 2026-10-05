@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RaceService, Race } from '../../services/race.service';
+import { Countries } from '../../constants/countries';
 
 @Component({
   selector: 'app-add-race',
@@ -15,6 +16,7 @@ export class AddRaceComponent {
   private readonly raceService = inject(RaceService);
   private readonly router = inject(Router);
   private readonly allowedTrackExt = ['geojson', 'kml', 'gpx'];
+  readonly countries = Countries;
 
 
   // Form fields
