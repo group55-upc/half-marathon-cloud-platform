@@ -94,7 +94,7 @@ jobs:
       - name: Publicar la compilación como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: marathon-app/frontend-dist
+          name: frontend-dist
           path: marathon-app/frontend/code/dist/Frontend/browser
           retention-days: 7
 
