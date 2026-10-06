@@ -66,15 +66,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/code/package-lock.json
+          cache-dependency-path: marathon-app/frontend/code/package-lock.json
 
       - name: Instalar dependencias
         run: npm ci
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
 
       - name: Compilar
         run: npm run build
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
 
       # Guarda de regresión del defecto documentado en la memoria (11.6):
       # el bloque 'assets' de angular.json copiaba todo src/ a la salida,
@@ -89,13 +89,13 @@ jobs:
             find dist -name '*.ts'
             exit 1
           fi
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
 
       - name: Publicar la compilación como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-dist
-          path: frontend/code/dist/Frontend/browser
+          name: marathon-app/frontend-dist
+          path: marathon-app/frontend/code/dist/Frontend/browser
           retention-days: 7
 
   # ---------------------------------------------------------------- backend
@@ -110,24 +110,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: backend/code/package-lock.json
+          cache-dependency-path: marathon-app/backend/code/package-lock.json
 
       - name: Instalar dependencias
         run: npm ci
-        working-directory: backend/code
+        working-directory: marathon-app/backend/code
 
       - name: Comprobar que el código es sintácticamente válido
         run: node --check server.js && node --check db.js
-        working-directory: backend/code
+        working-directory: marathon-app/backend/code
 
       - name: Auditar dependencias (informativo)
         run: npm audit --audit-level=high
-        working-directory: backend/code
+        working-directory: marathon-app/backend/code
         continue-on-error: true
 
       - name: Construir la imagen del contenedor
         run: docker build -t marathon-backend:ci -f Dockerfile .
-        working-directory: backend/code
+        working-directory: marathon-app/backend/code
 
       # Trivy analiza la imagen: sistema base y dependencias de Node.
       #

@@ -109,7 +109,7 @@ jobs:
       #   :<hash del commit> para disponer de trazabilidad de versiones, que es
       #                      la limitación documentada en la memoria (12.2)
       - name: Construir y publicar la imagen
-        working-directory: backend/code
+        working-directory: marathon-app/backend/code
         run: |
           ECR="${{ steps.infra.outputs.ecr_uri }}"
           SHA="${GITHUB_SHA::7}"
@@ -159,11 +159,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/code/package-lock.json
+          cache-dependency-path: marathon-app/frontend/code/package-lock.json
 
       - name: Inyectar la dirección de la API
         if: ${{ inputs.desplegar_frontend }}
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
         run: |
           API="${{ steps.infra.outputs.api_url }}"
           sed -i "s|private readonly apiUrl = '[^']*';|private readonly apiUrl = '$API';|" \
@@ -172,14 +172,14 @@ jobs:
 
       - name: Compilar el frontend
         if: ${{ inputs.desplegar_frontend }}
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
         run: |
           npm ci
           npm run build
 
       - name: Comprobar que la compilación no contiene código fuente
         if: ${{ inputs.desplegar_frontend }}
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
         run: |
           FUENTES=$(find dist -name '*.ts' | wc -l)
           if [ "$FUENTES" -ne 0 ]; then
@@ -190,7 +190,7 @@ jobs:
 
       - name: Publicar el frontend en S3
         if: ${{ inputs.desplegar_frontend }}
-        working-directory: frontend/code
+        working-directory: marathon-app/frontend/code
         run: |
           aws s3 sync dist/Frontend/browser "s3://$S3_BUCKET" --delete --only-show-errors
           echo "- Frontend publicado en \`$S3_BUCKET\`" >> "$GITHUB_STEP_SUMMARY"

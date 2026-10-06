@@ -3,7 +3,7 @@ resource "aws_amplify_app" "amplify-marathon-frontend" {
   repository   = "https://github.com/group55-upc/half-marathon-cloud-platform"
   access_token = var.amplify-repository-token
 
-  build_spec = file("${path.module}/../../frontend/amplify/amplify.yml")
+  build_spec = file("${path.module}/../../marathon-app/frontend/amplify/amplify.yml")
 
   custom_rule {
     source = "/<*>"
