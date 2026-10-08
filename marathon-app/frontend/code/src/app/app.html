@@ -1,8 +1,8 @@
 <header class="app-header">
   <div class="nav-container">
     <a routerLink="/dashboard" class="logo-area">
-      <span class="logo-icon">🏃‍♂️</span>
-      <h1 class="app-title">RaceTracker</h1>
+      <span class="logo-icon"></span>
+      <h1 class="app-title">MarathonCloud</h1>
     </a>
 
     <nav class="app-nav">
@@ -12,6 +12,11 @@
       <a routerLink="/add-race" routerLinkActive="active" class="nav-link" id="nav-add-race">
         Register Race
       </a>
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/notifications" routerLinkActive="active" class="nav-link" id="nav-notifications">
+          Notifications
+        </a>
+      }
     </nav>
 
     <div class="api-status-area">
@@ -27,6 +32,20 @@
           }
         </span>
       </button>
+
+      @if (auth.isLoggedIn()) {
+        <span class="nav-user">{{ auth.username() }}</span>
+        <button type="button" (click)="logout()" class="nav-link nav-button" id="nav-logout">
+          Log Out
+        </button>
+      } @else {
+        <a routerLink="/login" routerLinkActive="active" class="nav-link" id="nav-login">
+          Log In
+        </a>
+        <a routerLink="/signup" routerLinkActive="active" class="nav-link" id="nav-signup">
+          Sign Up
+        </a>
+      }
     </div>
   </div>
 </header>
@@ -39,6 +58,6 @@
 
 <footer class="app-footer">
   <div class="footer-container">
-    <p>&copy; 2026 RaceTracker SPA.</p>
+    <p>&copy; 2026 MarathonCloud</p>
   </div>
 </footer>

@@ -1,7 +1,8 @@
 import { Component, signal, OnInit, inject } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RaceService } from './services/race.service';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -11,8 +12,10 @@ import { RaceService } from './services/race.service';
 })
 export class App implements OnInit {
   private readonly raceService = inject(RaceService);
+  private readonly router = inject(Router);
+  protected readonly auth = inject(AuthService);
 
-  protected readonly title = signal('RaceTracker SPA');
+  protected readonly title = signal('MarathonCloud');
   protected readonly isBackendHealthy = signal<boolean | null>(null);
 
   ngOnInit(): void {
@@ -28,6 +31,13 @@ export class App implements OnInit {
       error: () => {
         this.isBackendHealthy.set(false);
       }
+    });
+  }
+
+  logout(): void {
+    this.auth.logout().subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: () => this.router.navigate(['/dashboard'])
     });
   }
 }

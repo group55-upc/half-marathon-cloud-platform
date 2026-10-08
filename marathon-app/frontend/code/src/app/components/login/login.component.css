@@ -1,0 +1,5 @@
+.form-actions-stacked {
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+}

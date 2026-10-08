@@ -109,7 +109,7 @@
 
   <div *ngIf="!isLoading() && !errorMsg()">
     <div *ngIf="filteredRaces().length === 0" class="empty-state">
-      <div class="empty-icon">🏃‍♂️💨</div>
+      <div class="empty-icon"></div>
       <h2>No Races Found</h2>
       <p>Try adjusting your search criteria or register a new race.</p>
       <a routerLink="/add-race" class="btn btn-primary go-add-btn" id="go-add-btn">Register New Race</a>

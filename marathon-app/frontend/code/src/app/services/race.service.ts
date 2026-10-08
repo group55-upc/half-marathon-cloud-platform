@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_URL } from '../constants/apis';
 
 export interface Race {
   id?: string;
@@ -19,7 +20,8 @@ export interface Race {
 })
 export class RaceService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'https://api.fpcmarathon.upcnet.es';
+
+  private readonly apiUrl = API_URL;
 
   getRaces(filters?: Partial<Race>): Observable<Race[]> {
     let params = new HttpParams();

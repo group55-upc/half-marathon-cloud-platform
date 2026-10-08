@@ -1,0 +1,87 @@
+<div class="form-container">
+  <div class="form-card">
+    <div class="form-header">
+      <h2>Race Notifications</h2>
+      <p>Get an email when a new race is added in the countries you choose</p>
+    </div>
+
+    @if (successMsg()) {
+      <div class="alert alert-success animate-fade-in">
+        <div>{{ successMsg() }}</div>
+      </div>
+    }
+
+    @if (errorMsg()) {
+      <div class="alert alert-danger animate-fade-in">
+        <div><strong>Error!</strong> {{ errorMsg() }}</div>
+      </div>
+    }
+
+    @if (isLoading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+
+      @if (pending()) {
+        <div class="alert alert-warning animate-fade-in">
+          <div>
+            Confirm the email from <strong>AWS Notifications</strong> to start receiving race alerts.
+            <button type="button" class="link-button" (click)="load()">I've confirmed, refresh</button>
+          </div>
+        </div>
+      }
+
+      <!-- Selected countries -->
+      <div class="chips">
+        @for (country of selectedList(); track country) {
+          <button type="button" class="chip" (click)="toggle(country)" [disabled]="pending()" title="Remove">
+            {{ country }} ✕
+          </button>
+        } @empty {
+          <span class="muted">No countries selected</span>
+        }
+      </div>
+
+      <input
+        type="search"
+        id="country-search"
+        class="form-control"
+        placeholder="Search a country..."
+        [value]="search()"
+        (input)="onSearch($event)"
+      />
+
+      <div class="country-list">
+        @for (country of filteredCountries(); track country) {
+          <label class="country-item" [class.checked]="selected().has(country)">
+            <input
+              type="checkbox"
+              [checked]="selected().has(country)"
+              [disabled]="pending()"
+              (change)="toggle(country)"
+            />
+            {{ country }}
+          </label>
+        } @empty {
+          <span class="muted">No country matches "{{ search() }}"</span>
+        }
+      </div>
+
+      <div class="form-actions">
+        @if (isSubscribed()) {
+          <button type="button" class="btn btn-danger" (click)="cancel()" [disabled]="isSaving()" id="cancel-notifications-btn">
+            Cancel all notifications
+          </button>
+        }
+        <button
+          type="button"
+          class="btn btn-primary submit-btn"
+          (click)="save()"
+          [disabled]="pending() || !hasChanges() || isSaving()"
+          id="save-notifications-btn"
+        >
+          {{ isSaving() ? 'Saving...' : 'Save' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

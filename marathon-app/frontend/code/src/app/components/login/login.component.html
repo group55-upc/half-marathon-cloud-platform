@@ -1,0 +1,41 @@
+<div class="form-container">
+  <div class="form-card">
+    <div class="form-header">
+      <h2>Log In</h2>
+      <p>Log in to register new races</p>
+    </div>
+
+    @if (justConfirmed) {
+      <div class="alert alert-success animate-fade-in">
+        <div><strong>Account confirmed!</strong> You can log in now.</div>
+      </div>
+    }
+
+    @if (errorMsg()) {
+      <div class="alert alert-danger animate-fade-in">
+        <div><strong>Error!</strong> {{ errorMsg() }}</div>
+      </div>
+    }
+
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="username">Username or email</label>
+        <input type="text" id="username" name="username" [(ngModel)]="username"
+               class="form-control" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" [(ngModel)]="password"
+               class="form-control" autocomplete="current-password">
+      </div>
+
+      <div class="form-actions form-actions-stacked">
+        <button type="submit" class="btn btn-primary submit-btn" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Logging in...' : 'Log In' }}
+        </button>
+        <a routerLink="/signup" class="btn btn-link">Create an account</a>
+      </div>
+    </form>
+  </div>
+</div>
