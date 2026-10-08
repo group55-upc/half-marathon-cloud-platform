@@ -8,9 +8,10 @@ resource "aws_vpc" "vpc" {
 }
 
 resource "aws_subnet" "public" {
-  count             = length(var.aws-availability-zones)
-  vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.aws-availability-zones[count.index]
+  count  = 2
+  vpc_id = aws_vpc.vpc.id
+  #availability_zone = var.aws-availability-zones[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
   cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 8, (count.index))
   tags              = local.tags
 }
@@ -26,10 +27,10 @@ resource "aws_eip" "eip-nat" {
 }
 
 resource "aws_nat_gateway" "natgw" {
-  depends_on = [aws_internet_gateway.igw]
+  depends_on    = [aws_internet_gateway.igw]
   allocation_id = aws_eip.eip-nat.id
   subnet_id     = aws_subnet.public[0].id
-  tags = local.tags
+  tags          = local.tags
 }
 
 resource "aws_route_table" "public" {
@@ -48,9 +49,10 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count             = length(var.aws-availability-zones)
-  vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.aws-availability-zones[count.index]
+  count  = 2
+  vpc_id = aws_vpc.vpc.id
+  #availability_zone = var.aws-availability-zones[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
   cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 8, count.index + 2)
   tags              = local.tags
 }
@@ -58,10 +60,10 @@ resource "aws_subnet" "private" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.vpc.id
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.natgw.id
   }
-  tags   = local.tags
+  tags = local.tags
 }
 
 resource "aws_route_table_association" "private" {

@@ -1,6 +1,12 @@
 # INFRASTRUCTURE RELATED VARIABLES #
 # MUST BE THE SAME AS THE REAL INFRASTRUCTURE #
 
+variable "region" {
+  description = "The selected AWS region for the VPC"
+  type        = string
+  default     = "us-east-1"
+}
+
 variable "vpc-id" {
   description = "The id of main vpc"
   type        = string
@@ -13,23 +19,23 @@ variable "eks-cluster-name" {
   default     = "marathon-cluster-eks"
 }
 
-variable "ecr-repository" {
-  description = "The URL of the ECR"
+variable "ecr-repository-name" {
+  description = "The name of the ECR"
   type        = string
-  default     = "614151790300.dkr.ecr.us-east-1.amazonaws.com/container-image-repository"
+  default     = "container-image-repository"
 }
 
-variable "alb-cluster-arn" {
-  description = "The arn of the alb"
+variable "alb-tg-cluster-name" {
+  description = "The name of the alb"
   type        = string
-  default     = "arn:aws:elasticloadbalancing:us-east-1:614151790300:targetgroup/tg-cluster/3cb482b21d9296ea"
+  default     = "tg-cluster"
 }
 
 
 # MARATHON K8S APP #
 
 variable "enable-marathon-app" {
-  description = "Crear el tema de SNS y las alarmas de CloudWatch"
+  description = "Activa la app de marathon-app"
   type        = bool
   default     = false
 }

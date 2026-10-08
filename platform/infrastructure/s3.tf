@@ -1,3 +1,66 @@
+# resource "aws_s3_bucket" "s3-marathon-app-tracks" {
+#   count = var.enable-marathon-app ? 1 : 0
+#   bucket        = "fpcmarathon-tracks"
+#   force_destroy = true
+#   tags          = local.tags
+# }
+
+# resource "aws_s3_bucket_public_access_block" "s3-marathon-app-tracks" {
+#   count = var.enable-marathon-app ? 1 : 0
+#   bucket = aws_s3_bucket.s3-marathon-app-tracks.id
+#   block_public_acls       = false
+#   block_public_policy     = false
+#   ignore_public_acls      = false
+#   restrict_public_buckets = false
+# }
+
+
+# resource "aws_s3_bucket_policy" "s3-marathon-app-tracks" {
+#   count = var.enable-marathon-app ? 1 : 0
+#   bucket     = aws_s3_bucket.s3-marathon-app-tracks.id
+
+#   policy = jsonencode({
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Sid": "PublicReadGetObject",
+#             "Effect": "Allow",
+#             "Principal": "*",
+#             "Action": "s3:GetObject",
+#             "Resource": "arn:aws:s3:::fpcmarathon-tracks/*"
+#         }
+#     ]
+# })
+# }
+
+# resource "aws_s3_bucket_cors_configuration" "s3-marathon-app-tracks" {
+#   count = var.enable-marathon-app ? 1 : 0
+#   bucket = aws_s3_bucket.s3-marathon-app-tracks.id
+
+#   cors_rule {
+#     allowed_headers = ["*"]
+#     allowed_methods = ["GET", "HEAD"]
+#     allowed_origins  = ["https://cloud.fpcmarathon.upcnet.es"]
+#     expose_headers  = ["ETag", "Content-Length", "Content-Range"]
+#     max_age_seconds = 3000
+#   }
+# }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # # # S3 BUCKET FOR FRONTEND ##
 
 # resource "aws_s3_bucket" "s3-website" {
@@ -51,55 +114,3 @@
 #     status = "Disabled"
 #   }
 # }
-
-
-
-
-
-
-
-
-# resource "aws_s3_bucket" "s3-marathon-app-tracks" {
-#   bucket        = "fpcmarathon-tracks"
-#   force_destroy = true
-#   tags          = local.tags
-# }
-
-# resource "aws_s3_bucket_public_access_block" "s3-marathon-app-tracks" {
-#   bucket = aws_s3_bucket.s3-marathon-app-tracks.id
-#   block_public_acls       = false
-#   block_public_policy     = false
-#   ignore_public_acls      = false
-#   restrict_public_buckets = false
-# }
-
-
-# resource "aws_s3_bucket_policy" "s3-marathon-app-tracks" {
-#   bucket     = aws_s3_bucket.s3-marathon-app-tracks.id
-
-#   policy = jsonencode({
-#     "Version": "2012-10-17",
-#     "Statement": [
-#         {
-#             "Sid": "PublicReadGetObject",
-#             "Effect": "Allow",
-#             "Principal": "*",
-#             "Action": "s3:GetObject",
-#             "Resource": "arn:aws:s3:::fpcmarathon-tracks/*"
-#         }
-#     ]
-# })
-# }
-
-# resource "aws_s3_bucket_cors_configuration" "s3-marathon-app-tracks" {
-#   bucket = aws_s3_bucket.s3-marathon-app-tracks.id
-
-#   cors_rule {
-#     allowed_headers = ["*"]
-#     allowed_methods = ["GET", "HEAD"]
-#     allowed_origins  = ["https://cloud.fpcmarathon.upcnet.es"]
-#     expose_headers  = ["ETag", "Content-Length", "Content-Range"]
-#     max_age_seconds = 3000
-#   }
-# }
-

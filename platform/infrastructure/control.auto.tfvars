@@ -1,4 +1,6 @@
-enable-EKS = false
-enable-autoscaling = true
-enable-alarms = true
+enable-eks          = false
+enable-autoscaling  = false
+enable-alarms       = false
+enable-marathon-app = false
 
+    

@@ -1,5 +1,5 @@
 resource "aws_route53_zone" "fpcmarathon-subzone" {
-  name = var.route53-zone-name
+  name = var.marathon-app-route53-zone-name
   tags = local.tags
 }
 

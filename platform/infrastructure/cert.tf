@@ -5,7 +5,7 @@ resource "aws_acm_certificate" "alb-cluster-cert" {
   lifecycle {
     create_before_destroy = true
   }
-  
+
   tags = local.tags
 }
 

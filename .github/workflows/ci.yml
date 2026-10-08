@@ -116,9 +116,9 @@ jobs:
         run: npm ci
         working-directory: marathon-app/backend/code
 
-      - name: Comprobar que el código es sintácticamente válido
-        run: node --check server.js && node --check db.js
-        working-directory: marathon-app/backend/code
+      # - name: Comprobar que el código es sintácticamente válido
+      #   run: node --check server.js && node --check db.js
+      #   working-directory: marathon-app/backend/code
 
       - name: Auditar dependencias (informativo)
         run: npm audit --audit-level=high

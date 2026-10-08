@@ -1,7 +1,7 @@
 ## EKS ##
 
 resource "aws_eks_cluster" "eks-cluster-one" {
-  count    = var.enable-EKS ? 1 : 0
+  count    = var.enable-eks ? 1 : 0
   name     = var.eks-cluster-name
   role_arn = data.aws_iam_role.lab-role.arn
   version  = var.eks-cluster-version
@@ -15,23 +15,23 @@ resource "aws_eks_cluster" "eks-cluster-one" {
     endpoint_public_access  = true
   }
 
-   access_config {
-     authentication_mode = "API_AND_CONFIG_MAP"
-   }
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
 
   tags = local.tags
 }
 
 
 resource "aws_eks_node_group" "worker-nodes-cluster-one" {
-  count           = var.enable-EKS ? 1 : 0
+  count           = var.enable-eks ? 1 : 0
   cluster_name    = aws_eks_cluster.eks-cluster-one[0].name
   node_group_name = "eks-worker-nodes"
   node_role_arn   = data.aws_iam_role.lab-role.arn
   subnet_ids      = aws_subnet.private[*].id
 
   instance_types = [var.eks-node-instance-type]
-  ami_type = "AL2023_x86_64_STANDARD"
+  ami_type       = "AL2023_x86_64_STANDARD"
 
   launch_template {
     id      = aws_launch_template.worker-node[0].id
@@ -63,7 +63,7 @@ resource "aws_eks_node_group" "worker-nodes-cluster-one" {
 
 
 resource "aws_launch_template" "worker-node" {
-  count       = var.enable-EKS ? 1 : 0
+  count       = var.enable-eks ? 1 : 0
   name_prefix = "eks-worker-node-"
 
   metadata_options {
@@ -77,7 +77,7 @@ resource "aws_launch_template" "worker-node" {
 ## CLUSTER ADD-ONS ##
 
 resource "aws_eks_addon" "cloudwatch-observability-cluster" {
-  count        = var.enable-EKS ? 1 : 0
+  count        = var.enable-eks ? 1 : 0
   cluster_name = aws_eks_cluster.eks-cluster-one[0].name
   addon_name   = "amazon-cloudwatch-observability"
   depends_on   = [aws_eks_node_group.worker-nodes-cluster-one]
@@ -87,7 +87,7 @@ resource "aws_eks_addon" "cloudwatch-observability-cluster" {
 
 # Accés al cluster per l'usuari de las credenciasl de terrafom
 resource "aws_eks_access_entry" "student-user" {
-  count         = var.enable-EKS ? 1 : 0
+  count         = var.enable-eks ? 1 : 0
   cluster_name  = aws_eks_cluster.eks-cluster-one[0].name
   principal_arn = local.caller_role_arn
 }
@@ -95,7 +95,7 @@ resource "aws_eks_access_entry" "student-user" {
 
 # Permisos d'admin per al usuari de les credenciasls de terraform
 resource "aws_eks_access_policy_association" "student-admin" {
-  count         = var.enable-EKS ? 1 : 0
+  count         = var.enable-eks ? 1 : 0
   cluster_name  = aws_eks_cluster.eks-cluster-one[0].name
   principal_arn = local.caller_role_arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
@@ -103,6 +103,8 @@ resource "aws_eks_access_policy_association" "student-admin" {
   access_scope {
     type = "cluster"
   }
+
+  depends_on = [aws_eks_access_entry.student-user]
 }
 
 locals {

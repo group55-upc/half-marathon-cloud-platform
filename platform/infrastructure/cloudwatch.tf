@@ -2,7 +2,7 @@
 ## ALARMAS DE CLOUDWATCH ##
 
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  count               = (var.enable-EKS && var.enable-alarms) ? 1 : 0
+  count               = (var.enable-eks && var.enable-alarms) ? 1 : 0
   alarm_name          = "eks-dataplane-cpu-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "CPUUtilization"
@@ -26,7 +26,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "memory_high" {
-  count               = (var.enable-EKS && var.enable-alarms) ? 1 : 0
+  count               = (var.enable-eks && var.enable-alarms) ? 1 : 0
   alarm_name          = "eks-dataplane-memory-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "mem_used_percent"

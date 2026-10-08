@@ -1,3 +1,11 @@
+resource "aws_sns_topic" "marathon-app-notifications" {
+  count = var.enable-marathon-app ? 1 : 0
+  name = "marathon-app"
+  tags = local.tags
+}
+
+
+
 ## SNS: TEMA DE ALERTAS ##
 
 resource "aws_sns_topic" "eks-alarms" {
@@ -12,8 +20,4 @@ resource "aws_sns_topic_subscription" "alertas-correo" {
   protocol  = "email"
   endpoint  = each.value
 }
-
-
-
-
 

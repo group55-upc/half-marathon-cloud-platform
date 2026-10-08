@@ -20,7 +20,7 @@ resource "kubernetes_manifest" "app-marathon-target-group-binding" {
         name = "marathon-cloudupc"
         port = 5000
       }
-      targetGroupARN = var.alb-cluster-arn
+      targetGroupARN = data.aws_alb_target_group.cluster-target-group.arn
       targetType     = "ip"
     }
   }
@@ -44,7 +44,7 @@ resource "helm_release" "app-marathon" {
   }
   set {
     name  = "image.repository"
-    value = var.ecr-repository
+    value = data.aws_ecr_repository.ecr-repository.repository_url
   }
   set {
     name  = "image.tag"

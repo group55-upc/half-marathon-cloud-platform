@@ -1,5 +1,9 @@
 ## Data block resources for diferents .tf files
 
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_role" "lab-role" {
@@ -9,3 +13,4 @@ data "aws_iam_role" "lab-role" {
 data "aws_iam_instance_profile" "lab-instance" {
   name = "LabInstanceProfile"
 }
+

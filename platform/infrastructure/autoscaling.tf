@@ -1,12 +1,12 @@
 ## EKS AUTOSCALING
 
 resource "aws_autoscaling_policy" "eks-dataplane-cpu" {
-  count              = (var.enable-EKS && var.enable-autoscaling) ? 1 : 0
-  name               = "eks-dataplane-cpu-usage"
-  policy_type        = "TargetTrackingScaling"
-  autoscaling_group_name      = aws_eks_node_group.worker-nodes-cluster-one[0].resources[0].autoscaling_groups[0].name
+  count                  = (var.enable-eks && var.enable-autoscaling) ? 1 : 0
+  name                   = "eks-dataplane-cpu-usage"
+  policy_type            = "TargetTrackingScaling"
+  autoscaling_group_name = aws_eks_node_group.worker-nodes-cluster-one[0].resources[0].autoscaling_groups[0].name
 
-  target_tracking_configuration{
+  target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
@@ -17,7 +17,7 @@ resource "aws_autoscaling_policy" "eks-dataplane-cpu" {
 }
 
 resource "aws_autoscaling_policy" "eks-dataplane-memory" {
-  count              = (var.enable-EKS && var.enable-autoscaling) ? 1 : 0
+  count                  = (var.enable-eks && var.enable-autoscaling) ? 1 : 0
   name                   = "eks-dataplane-memory-usage"
   policy_type            = "TargetTrackingScaling"
   autoscaling_group_name = aws_eks_node_group.worker-nodes-cluster-one[0].resources[0].autoscaling_groups[0].name

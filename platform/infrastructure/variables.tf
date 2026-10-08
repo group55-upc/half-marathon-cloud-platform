@@ -20,13 +20,7 @@ variable "vpc-cidr" {
   default     = "10.0.0.0/16"
 }
 
-# DYNAMODB VARIABLES
 
-variable "dynamodb-name" {
-  description = "The name of the DynamoDB"
-  type        = string
-  default     = "races"
-}
 
 # ECR VARIABLES
 
@@ -38,7 +32,7 @@ variable "ecr-name" {
 
 # EKS VARIABLES
 
-variable "enable-EKS" {
+variable "enable-eks" {
   description = "Enable the creation of the EKS cluster"
   type        = bool
   default     = false
@@ -62,13 +56,7 @@ variable "eks-node-instance-type" {
   default     = "t3.medium"
 }
 
-# AMPLIFY
 
-variable "amplify-repository-token" {
-  description = "Personal Git PAT Token to access the repository"
-  type        = string
-  sensitive   = true
-}
 
 # OBSERVAVILITY - AUTOSCALING
 
@@ -110,6 +98,15 @@ variable "eks-alarm-memory-target" {
   default     = 80
 }
 
+
+## MARATHON APP RELATED VARIABLES ##
+
+variable "enable-marathon-app" {
+  description = "Enable the creation resources related to the marathon-app"
+  type        = bool
+  default     = false
+}
+
 # SNS
 
 variable "alert-emails" {
@@ -118,12 +115,34 @@ variable "alert-emails" {
   default     = []
 }
 
+# DYNAMODB VARIABLES
+
+variable "marathon-app-db-name-races" {
+  description = "The name of the DynamoDB"
+  type        = string
+  default     = "races"
+}
+
+variable "marathon-app-db-name-notifications" {
+  description = "The name of the DynamoDB"
+  type        = string
+  default     = "subscriptions"
+}
+
+# AMPLIFY
+
+variable "marathon-app-amplify-repository-token" {
+  description = "Personal Git PAT Token to access the repository"
+  type        = string
+  sensitive   = true
+}
+
 # ROUTE 53
 
-variable "route53-zone-name" {
+variable "marathon-app-route53-zone-name" {
   description = "Name of the Route53 zone"
-  type = string
-  default = "fpcmarathon.upcnet.es"
+  type        = string
+  default     = "fpcmarathon.upcnet.es"
 }
 
 # CERT MANAGER

@@ -71,3 +71,14 @@ resource "aws_vpc_endpoint" "endpoint-logs" {
   tags                = local.tags
 }
 
+# Endpoint per poder accedir al Secret Manager desde EKS
+
+resource "aws_vpc_endpoint" "name" {
+  vpc_id              = aws_vpc.vpc.id
+  service_name        = "com.amazonaws.us-east-1.secretsmanager"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.sg-vpc-endpoints.id]
+  private_dns_enabled = true
+  tags                = local.tags
+}
