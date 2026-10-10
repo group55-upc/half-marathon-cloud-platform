@@ -56,7 +56,7 @@ resource "aws_eks_node_group" "worker-nodes-cluster-one" {
     aws_vpc_endpoint.endpoint-s3,
     aws_vpc_endpoint.endpoint-logs,
     aws_vpc_endpoint.endpoint-ec2,
-    aws_vpc_endpoint.sts,
+    aws_vpc_endpoint.endpoint-sts,
     aws_security_group.sg-vpc-endpoints
   ]
 }
