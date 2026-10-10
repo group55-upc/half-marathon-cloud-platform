@@ -35,11 +35,11 @@ resource "aws_security_group" "sg-alb-cluster" {
 # Security Group que correspon als vpc endpoint
 resource "aws_security_group" "sg-vpc-endpoints" {
   name        = "vpc-endpoints-sg"
-  description = "Allow HTTPS from EKS tasks to VPC endpoints"
+  description = "Allow HTTPS from all to VPC endpoints"
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    description     = "HTTPS from EKS pods"
+    description     = "HTTPS from all"
     from_port       = 443
     to_port         = 443
     protocol        = "TCP"
@@ -56,36 +56,10 @@ resource "aws_security_group" "sg-vpc-endpoints" {
   tags = local.tags
 }
 
-  # ingress {
-  #   description     = "HTTPS from EKS pods"
-  #   from_port       = 443
-  #   to_port         = 443
-  #   protocol        = "TCP"
-  #   security_groups = [aws_security_group.sg-eks-cluster-one.id]
-  # }
-
-  # ingress {
-  #   description     = "HTTPS from nodes"
-  #   from_port       = 443
-  #   to_port         = 443
-  #   protocol        = "TCP"
-  #   security_groups = [aws_eks_cluster.eks-cluster-one[0].vpc_config[0].cluster_security_group_id]
-  # }
-
-# resource "aws_security_group_rule" "rule-sg-endpoints-from-pods" {
-#   count                    = var.enable-eks ? 1 : 0
-#   type                     = "ingress"
-#   from_port                = 443
-#   to_port                  = 443
-#   protocol                 = "tcp"
-#   security_group_id        = aws_security_group.sg-vpc-endpoints.id
-#   source_security_group_id = aws_eks_cluster.eks-cluster-one[0].vpc_config[0].cluster_security_group_id
-# }
-
 # Security Group que correspon al clúster EKS / Control Plane
 resource "aws_security_group" "sg-eks-cluster-one" {
   name        = "eks-cluster-sg"
-  description = "Allow traffic to EKS pods (Fargate) and cluster control plane"
+  description = "Allow traffic to EKS pods and cluster control plane"
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
@@ -119,16 +93,4 @@ resource "aws_security_group_rule" "rule-sg-pods-from-alb" {
   source_security_group_id = aws_security_group.sg-alb-cluster.id
   description              = "ALB to pods (actual node/pod SG)"
 }
-
-
-# resource "aws_security_group_rule" "rule-sg-vpc-endpoints" {
-#   count                    = var.enable-eks ? 1 : 0
-#   type                     = "ingress"
-#   from_port                = 443
-#   to_port                  = 443
-#   protocol                 = "tcp"
-#   security_group_id        = aws_security_group.sg-vpc-endpoints.id
-#   source_security_group_id = aws_eks_cluster.eks-cluster-one[0].vpc_config[0].cluster_security_group_id
-#   description              = "HTTPS from nodes"
-# }
 

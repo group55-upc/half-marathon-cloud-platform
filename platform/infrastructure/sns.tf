@@ -4,8 +4,6 @@ resource "aws_sns_topic" "marathon-app-notifications" {
   tags = local.tags
 }
 
-
-
 ## SNS: TEMA DE ALERTAS ##
 
 resource "aws_sns_topic" "eks-alarms" {
