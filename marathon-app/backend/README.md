@@ -7,7 +7,7 @@ Codi del contenidor que actua com a backend a l'aplicació de marathon
 Situarnos al directori corresponent
 
 ```bash
-cd /half-marathon-cloud-platform/backend/code
+cd /half-marathon-cloud-platform/marathon-app/backend/code
 ```
 
 Crear la imatge
