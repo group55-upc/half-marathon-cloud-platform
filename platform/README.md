@@ -2,41 +2,45 @@
 
 El directori _platform_ conté dos subdirectoris, _infrastructure_ i _cluster_
 
-El directori _infrastructure_ conté la configuració de Terraform que gestiona la infraestructura cloud genèrica, load balancers, vpc, clústers eks, etc. A continuació es llisten els fitxers i que conté cadascun.
+El directori _infrastructure_ conté la configuració de Terraform que gestiona la infraestructura cloud genèrica, load balancers, vpc, clústers eks, etc. A continuació es llisten els fitxers i que conté cadascun
 
-El directori _cluster_ conté la configuració de Terraform que gestiona recursos de kubernetes dins del clúster eks. És on es defineixen recursos com deployments, configmaps, o els helm releases de les nostres aplicacions. Aquesta configuració **no** gestiona la infraestructura del clúster (nodes, xarxa, etc), únicament gestiona components de kubernetes.
+El directori _cluster_ conté la configuració de Terraform que gestiona recursos de kubernetes dins del clúster eks. És on es defineixen recursos com deployments, configmaps, o els helm releases de les nostres aplicacions. Aquesta configuració **no** gestiona la infraestructura del clúster (nodes, xarxa, etc), únicament gestiona components de kubernetes
 
 ### INFRASTRUCTURE
 
 Conté els següents fitxers:
 
-`alb.tf`: Configuració de Terraform relacionada amb el aplication load balancer que s'encarrega d'enviar el tràfic, en aquest cas, al clúster eks
+`alb.tf`: Configuració que defineix el Aplication Load Balancer, com també el Target Group i els Listeners de http i https
 
-`amplify.tf`: Configuració del frontend de l'aplicació marathon-app desplegat amb amplify
+`amplify.tf`: Configuració del frontend de l'aplicació _marathon-app_ desplegat amb amplify. Defineix l'aplicació, el domini dns i dues branques relacionades amb el GitHub, _main_ i _des_
 
-`autoscaling.tf`: Polítiques d'autoescalat dels nodes workers del clúster eks
+`autoscaling.tf`: Fitxer on es defineixen les polítiques d'autoescalat dels nodes workers del clúster eks. Hi ha dues, una relacionada amb l'ús de cpu i l'altre amb l'ús de memòria
 
 `cert.tf`: Configuració del Amazon Cert Manager per generar un certificat per al alias dns que apunta al nom dns del alb
 
-`cloudwatch.tf`: Alarmes de monitoratge dels nodes workers del clúster eks
+`cloudwatch.tf`: Alarmes de monitoratge dels nodes workers del clúster eks. Hi ha dues, una relacionada amb l'ús de cpu i l'altre amb l'ús de memòria
 
-`dynamodb.tf`: Base de dades de l'aplicació marathon-app
+`cognito.tf`: Definició del _AWS User Pool_ que utilitza l'aplicació marathon-app. Conté la definició de la _pool_ d'usuaris i del client _marathon-app_
+
+`dynamodb.tf`: Configuració de les bases de dades de l'aplicació _marathon-app_
 
 `ecr.tf`: Configuració del registry privat on publicar imatges de contenidors
 
-`eks.tf`: Configuració del clúster eks, dataplane, worker nodes i accessos
+`eks.tf`: Configuració del clúster eks, dataplane, worker nodes i diferents accessos
 
 `endpoints.tf`: Configuració dels vpc endpoints per permetre cert tipus de tràfic dins les subxarxes privades
 
-`lambda.tf`: Funció per importar curses, Itzel
+`lambda.tf`: Funció de l'aplicació _marathon-app_ per notificar als usuaris quan s'ha públicat una nova cursa
 
-`routing.tf`: Configuració de la subzona delegada del Route53 i aliàs del nom dns del alb
+`route53.tf`: Configuració de la subzona delegada del Route53 i de l'aliàs del nom dns del alb
 
-`s3.tf`: Buckets per el frontend de l'aplicació marathon-app i bucket d'emmagatzematge de les curses de l'aplicació marathon-app
+`s3.tf`: Bucket d'emmagatzematge de les curses de l'aplicació marathon-app
+
+`secretmanager.tf`: Definició dels secrets que utilitza l'aplicació _marathon-app_. Concretament, els necessaris per accedir a la _pool_ d'usuaris de AWS Cognito
 
 `sg.tf`: Configuració dels diferents security groups dins la vpc
 
-`sns.tf`: Tòpic i subscripció per rebre quan salten les alarmes de cloudwatch
+`sns.tf`: Tòpic i subscripció per rebre notificacions quan salten les alarmes de cloudwatch, així com tòpic per notificar als usuaris de les noves curses de l'aplicació _marathon-app_
 
 `vpc.tf`: Configuració de xarxa, vpc, subxarxes, nat, etc
 
