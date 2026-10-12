@@ -2,10 +2,18 @@
 
 ## RESUM
 
+### L'aplicació
+L'aplicació _Marathon Cloud Platform_ és una plataforma online que permet als usuaris registrar tant curses ja disputades com curses que encara s'han de celebrar. Funciona com un arxiu comú on la comunitat pot compartir tot tipus de curses arreu del mon. Cada usuari disposa del seu propi compte, a tra´ves del qual pot afegir noves curses, consultar les que han publicat altres membres i rebre notificacions sobre les novetat de la plataforma
 
+### Stack tecnològic
+
+La nostra aplicació es basa en quatre pilars fonamentals.
+
+El primer és la infraestructura cloud, construïda amb serveis d'aws i definida amb IaC amb Terraform. El segon és l'entorn de kubernetes, allotjat en un clúster eks, on s'executen els serveis de backend en contenidors. El tercer és el codi de frontend, desenvolupat en javascript i desplegat amb aws amplify, que ofereix la interfície amb la què interactuen els usuaris.El quart és el codi de backend, també en javascript, que conté la lògica i exposa la api que consumeix el frontend.
 
 ## STORYTELLING
 
+[...]
 
 ## REQUERIMENTS I OBJECTIUS
 
@@ -15,9 +23,9 @@ Per assolir el nostre objectiu es necessàri definir una infraestructura resilie
 
 El requeriments funcionals de la nostra aplicació són:
 1. Llistar i interactuar amb les diferents curses emmagatzemades dins la infraestructura cloud
-2. Oferir al usuari la possibilitat d'incorporar noves curses a l'aplicació
-3. 
-4. 
+2. Oferir a l'usuari la possibilitat d'incorporar noves curses a l'aplicació
+3. Tindre un control centralitzat d'usuaris (sign-in, sign-up, logout)
+4. Notificar als usuaris quan una nova cursa es publiqui a l'aplicació
 
 ## AWS
 
@@ -43,9 +51,7 @@ Hem utilitzat Git com a repositori font del nostre projecte. Tot el contingut es
 
 ### INFRAESTRUCTURA
 
-La infraestructura, es la següent
-
-
+La següent imatge mostra un diagrama de la infraestructura cloud utilitzada per al desenvolupament del projecte
 
 ![Image Alt Text](docs/arquitectura.jpeg)
 
