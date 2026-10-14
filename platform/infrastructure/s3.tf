@@ -7,7 +7,7 @@ resource "aws_s3_bucket" "s3-marathon-app-tracks" {
 
 resource "aws_s3_bucket_public_access_block" "s3-marathon-app-tracks" {
   count = var.enable-marathon-app ? 1 : 0
-  bucket = aws_s3_bucket.s3-marathon-app-tracks.id
+  bucket = aws_s3_bucket.s3-marathon-app-tracks[0].id
   block_public_acls       = false
   block_public_policy     = false
   ignore_public_acls      = false
@@ -17,7 +17,7 @@ resource "aws_s3_bucket_public_access_block" "s3-marathon-app-tracks" {
 
 resource "aws_s3_bucket_policy" "s3-marathon-app-tracks" {
   count = var.enable-marathon-app ? 1 : 0
-  bucket     = aws_s3_bucket.s3-marathon-app-tracks.id
+  bucket     = aws_s3_bucket.s3-marathon-app-tracks[0].id
 
   policy = jsonencode({
     "Version": "2012-10-17",
@@ -35,7 +35,7 @@ resource "aws_s3_bucket_policy" "s3-marathon-app-tracks" {
 
 resource "aws_s3_bucket_cors_configuration" "s3-marathon-app-tracks" {
   count = var.enable-marathon-app ? 1 : 0
-  bucket = aws_s3_bucket.s3-marathon-app-tracks.id
+  bucket = aws_s3_bucket.s3-marathon-app-tracks[0].id
 
   cors_rule {
     allowed_headers = ["*"]
