@@ -86,12 +86,6 @@ router.post("/auth/login", async (req, res) => {
       }
     }));
 
-    // // e.g. NEW_PASSWORD_REQUIRED for users created from the console
-    // if (!AuthenticationResult) {
-    //   return res.status(409).json({ error: "challenge required", challenge: ChallengeName });
-    // }
-
-    // the real username, also when the user logged in with the email
     const { username: cognitoUsername } = await accessTokenVerifier.verify(AuthenticationResult.AccessToken);
 
     res.status(200).json({

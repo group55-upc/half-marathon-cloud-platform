@@ -6,7 +6,7 @@ async function requireAuth(req, res, next) {
     return res.status(401).json({ error: "missing token" });
   }
   try {
-    req.user = await accessTokenVerifier.verify(token);   // payload: sub, username, exp...
+    req.user = await accessTokenVerifier.verify(token);  
     req.accessToken = token;
     next();
   } catch {

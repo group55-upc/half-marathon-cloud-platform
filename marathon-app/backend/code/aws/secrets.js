@@ -6,7 +6,6 @@ const secretsClient = new SecretsManagerClient({
   region: "us-east-1"
 });
 
-// copies the secret's keys into process.env; a value that is already set (e.g. in a local .env) wins
 async function loadSecrets() {
   const { SecretString } = await secretsClient.send(new GetSecretValueCommand({ SecretId: SECRET_ID }));
   const secrets = JSON.parse(SecretString);

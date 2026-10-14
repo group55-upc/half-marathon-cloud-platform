@@ -1,5 +1,3 @@
-// same list as frontend/code/src/app/constants/countries.ts
-// SNS filter policies match exact strings, so races and subscriptions must use these values
 const COUNTRIES = [
   'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola',
   'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',

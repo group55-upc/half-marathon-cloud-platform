@@ -13,10 +13,6 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// race notifications: one SNS topic, one email subscription per user,
-// and a filter policy with the user's countries. The Lambda publishes each new race
-// with a "country" message attribute and SNS only delivers to the matching subscriptions.
-// Table "subscriptions": PK userSub -> { countries (String Set), subscriptionArn }
 
 async function getSubscriptionItem(userSub) {
   const { Item } = await dbClient.send(new GetCommand({
@@ -26,8 +22,6 @@ async function getSubscriptionItem(userSub) {
   return Item;
 }
 
-// null if the subscription no longer exists in SNS (unsubscribed from the email link,
-// or never confirmed and expired after 3 days)
 async function getSubscriptionStatus(subscriptionArn) {
   try {
     const { Attributes } = await snsClient.send(new GetSubscriptionAttributesCommand({
@@ -95,7 +89,7 @@ router.put("/subscriptions", requireAuth, async (req, res) => {
         Protocol: "email",
         Endpoint: email,
         Attributes: { FilterPolicy: filterPolicy },
-        ReturnSubscriptionArn: true      // without it, SNS returns "pending confirmation" instead of the ARN
+        ReturnSubscriptionArn: true     
       }));
       subscriptionArn = result.SubscriptionArn;
     }
@@ -123,7 +117,7 @@ router.delete("/subscriptions", requireAuth, async (req, res) => {
       try {
         await snsClient.send(new UnsubscribeCommand({ SubscriptionArn: item.subscriptionArn }));
       } catch (error) {
-        console.log(error);              // already removed from the email link
+        console.log(error);              
       }
       await dbClient.send(new DeleteCommand({ TableName: "subscriptions", Key: { userSub: req.user.sub } }));
     }
