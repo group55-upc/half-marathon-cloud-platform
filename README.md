@@ -53,6 +53,6 @@ Hem utilitzat Git com a repositori font del nostre projecte. Tot el contingut es
 
 La següent imatge mostra un diagrama de la infraestructura cloud utilitzada per al desenvolupament del projecte
 
-![Image Alt Text](docs/arquitectura.jpeg)
+![Image Alt Text](docs/arquitectura.jpg)
 
 
