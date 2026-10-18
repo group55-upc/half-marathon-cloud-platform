@@ -94,3 +94,13 @@ resource "aws_vpc_endpoint" "endpoint-cognito" {
   private_dns_enabled = true
   tags                = local.tags
 }
+
+resource "aws_vpc_endpoint" "endpoint-sns" {
+  vpc_id              = aws_vpc.vpc.id
+  service_name        = "com.amazonaws.us-east-1.sns"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.sg-vpc-endpoints.id]
+  private_dns_enabled = true
+  tags                = local.tags
+}
