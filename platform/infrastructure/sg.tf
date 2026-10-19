@@ -56,7 +56,7 @@ resource "aws_security_group" "sg-vpc-endpoints" {
   tags = local.tags
 }
 
-# Security Group que correspon al clúster EKS / Control Plane
+# Security Group que correspon al clúster EKS / Control Plane - No proporciona cap funcionalitat extra, es podria treure
 resource "aws_security_group" "sg-eks-cluster-one" {
   name        = "eks-cluster-sg"
   description = "Allow traffic to EKS pods and cluster control plane"
@@ -91,6 +91,6 @@ resource "aws_security_group_rule" "rule-sg-pods-from-alb" {
   protocol                 = "tcp"
   security_group_id        = aws_eks_cluster.eks-cluster-one[0].vpc_config[0].cluster_security_group_id
   source_security_group_id = aws_security_group.sg-alb-cluster.id
-  description              = "ALB to pods (actual node/pod SG)"
+  description              = "ALB to pods/nodes"
 }
 
