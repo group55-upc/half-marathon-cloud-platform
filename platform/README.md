@@ -71,3 +71,70 @@ Conté els següents fitxers:
 `k8s-platform.tf`: Recursos de kubernetes relatius al clúster, no conté aplicacions d'usuari, si no de plataforma
 
 `k8s-app.tf`: Recursos de kubernetes relatius a aplicacions d'usuaris
+
+### DESPLEGAMENT DE LA INFRAESTRUCTURA
+
+Primer de tot inicialitzar l'entorn de laboratori AWS Academy, un cop inicialitzat copiem les credencials a
+```
+~/.aws/credentials
+```
+
+Accedim via web a la consola de AWS Academy i creem un bucket amb el nom _s3-cloudfpc-state_ per emmagatzemar els .tfstate
+
+Amb el bucket creat podem començar a desplegar la infraestructura
+
+Primer anirem al directori platform/infrastructure
+```
+cd half-marathon-cloud-platform/platform/infrastructure
+```
+
+Inicialitzem la configuració de Terraform
+```
+terraform init
+```
+
+Un cop inicialitzada la configuració, obrirem el fitxer _control.auto.tfvars_. Dins d'aquest fitxer estan definides les variables de control que ens permeten gestionar la infraestructura de manera modular. Ens asegurem que totes estiguin a _false_
+
+Amb totes les variables de control desactivades, executem Terraform
+```
+terraform apply -auto-approve
+```
+
+El primer _terraform apply_ te una limitació. Al intentar validar el nom DNS del balancejador, com es una subzona delegada, si aquesta no esta configurada, es quedara pendent durant 15 minuts fins que Terraform faci time-out. Quan comenci la validació del DNS del alb _aws_acm_certificate_validation.alb-cluster-cert_ esperarem uns minuts i enviarem una señal de interrupt a Terraform (Ctrl + C).
+
+Contactarem amb el gestor de la subzona del DNS per a que la configuri. Necessitarà els NS que amazon ens ha proporcionat, els podem obtindre executant la següent comanda
+```
+terraform output route53-nameservers
+```
+
+Un cop estigui configurada la subzona, podem tornar a executar Terraform
+```
+terraform apply -auto-approve
+```
+
+Amb la infraestructura base desplegada, podem crear els bloc adicionals gestionats per les variables indicades previament. Modifiquem el fitxer _control.auto.tfvars_
+```
+enable-eks          = true
+enable-autoscaling  = true
+enable-alarms       = true
+enable-marathon-app = **false**
+```
+
+Tornem a executar Terraform per desplegar el clúster EKS, les polítiques d'autoescalat i les alarmes de cloudwatch. Pot tardar fins a **10 minuts** en desplegar el clúster
+```
+terraform apply -auto-approve
+```
+
+Amb el cluster desplegat, podem crear els bloc adicionals relacionats amb la aplicació _marathon-app_. Modifiquem el fitxer _control.auto.tfvars_
+```
+enable-eks          = true
+enable-autoscaling  = true
+enable-alarms       = true
+enable-marathon-app = true
+```
+
+Tornem a executar Terraform
+```
+terraform apply -auto-approve
+```
+
