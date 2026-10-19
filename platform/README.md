@@ -6,6 +6,126 @@ El directori _infrastructure_ conté la configuració de Terraform que gestiona 
 
 El directori _cluster_ conté la configuració de Terraform que gestiona recursos de kubernetes dins del clúster eks. És on es defineixen recursos com deployments, configmaps, o els helm releases de les nostres aplicacions. Aquesta configuració **no** gestiona la infraestructura del clúster (nodes, xarxa, etc), únicament gestiona components de kubernetes
 
+## DESPLEGAMENT DE LA INFRAESTRUCTURA
+
+Primer de tot, inicialitzem l'entorn del laboratori d'AWS Academy. Un cop inicialitzat, copiem les credencials a:
+```
+~/.aws/credentials
+```
+
+Generem un PAT de GitHub per poder connectar Amplify amb el repositori:
+Compte personal -> Settings -> Developer Settings -> Personal Access Tokens -> Fine-grained Tokens -> Generate New Token
+
+```
+Token name: marathon-amplify
+Owner: group55-upc
+Expiration: No expiration
+Repository Access: Only Selected Repositories -> Select repositories -> group55-upc/half-marathon-cloud-platform
+Permissions - Repositories: Read access to metadata, Read and Write access to repository hooks
+Permissions - Organizations: Read and write access to organization hooks
+```
+
+Accedim a la consola web d'AWS Academy i creem un bucket amb el nom _s3-cloudfpc-state_ per emmagatzemar els fitxers .tfstate.
+
+Amb el bucket creat, ja podem començar a desplegar la infraestructura.
+
+Primer anirem al directori platform/infrastructure:
+```
+cd half-marathon-cloud-platform/platform/infrastructure
+```
+
+Inicialitzem la configuració de Terraform:
+```
+terraform init
+```
+
+Un cop inicialitzada la configuració, obrirem el fitxer _control.auto.tfvars_. En aquest fitxer hi ha definides les variables de control que ens permeten gestionar la infraestructura de manera modular. Ens assegurem que totes estiguin a _false_.
+
+Amb totes les variables de control desactivades, executem Terraform:
+```
+terraform apply -auto-approve
+```
+
+El primer _terraform apply_ té una limitació. En intentar validar el nom DNS del balancejador, com que és una subzona delegada, si aquesta no està configurada, la validació es quedarà pendent durant 15 minuts fins que Terraform arribi al temps d'espera màxim (time-out). Quan comenci la validació del DNS de l'ALB (_aws_acm_certificate_validation.alb-cluster-cert_), esperarem uns minuts i enviarem un senyal d'interrupció a Terraform (Ctrl + C).
+
+Contactarem amb el gestor de la subzona DNS perquè la configuri. Necessitarà els NS que ens ha proporcionat Amazon, que podem obtenir executant l'ordre següent:
+```
+terraform output route53-nameservers
+```
+
+Un cop configurada la subzona, podem tornar a executar Terraform:
+```
+terraform apply -auto-approve
+```
+
+Amb la infraestructura base desplegada, podem crear els blocs addicionals gestionats per les variables esmentades anteriorment. Modifiquem el fitxer _control.auto.tfvars_:
+```
+enable-eks          = true
+enable-autoscaling  = true
+enable-alarms       = true
+enable-marathon-app = false
+```
+
+Tornem a executar Terraform per desplegar el clúster EKS, les polítiques d'autoescalat i les alarmes de CloudWatch. El desplegament del clúster pot trigar fins a **10 minuts**.
+```
+terraform apply -auto-approve
+```
+
+Amb el clúster desplegat, podem crear els blocs addicionals relacionats amb l'aplicació _marathon-app_. Modifiquem el fitxer _control.auto.tfvars_:
+```
+enable-eks          = true
+enable-autoscaling  = true
+enable-alarms       = true
+enable-marathon-app = true
+```
+
+Tornem a executar Terraform:
+```
+terraform apply -auto-approve
+```
+
+Finalment, pujarem la imatge del contenidor a l'ECR.
+Documentació: [Construir la imatge del contenidor de marathon-app](https://github.com/group55-upc/half-marathon-cloud-platform/tree/main/marathon-app/backend#construir-la-imatge-del-contenidor)
+
+Ara que ja tenim tota la infraestructura desplegada, canviarem de directori per començar a gestionar el clúster de Kubernetes:
+```
+cd half-marathon-cloud-platform/platform/cluster
+```
+
+Importarem el context del clúster en local (cal tenir kubectl instal·lat):
+```
+aws sts get-caller-identity  # PER COMPROVAR SI ESTEM AUTENTICATS
+aws eks update-kubeconfig --region <region> --name <cluster-name> --kubeconfig ~/.kube/config   # PER OBTENIR EL KUBECONFIG
+```
+
+Inicialitzem la configuració de Terraform:
+```
+terraform init
+```
+
+Un cop inicialitzada la configuració, obrirem el fitxer _control.auto.tfvars_. En aquest fitxer hi ha definides les variables de control que ens permeten gestionar la infraestructura de manera modular. Ens assegurem que totes estiguin a _false_.
+
+Amb totes les variables de control desactivades, executem Terraform:
+```
+terraform apply -auto-approve
+```
+
+Amb l'ALB Controller instal·lat, podem instal·lar l'aplicació marathon-app. Modifiquem el fitxer _control.auto.tfvars_:
+```
+enable-marathon-app=true
+```
+
+Tornem a executar Terraform per desplegar l'aplicació:
+```
+terraform apply -auto-approve
+```
+
+Finalment, per forçar el desplegament d'Amplify cal publicar algun canvi al repositori. Modificarem la línia següent del README perquè detecti un canvi nou i així desplegui el frontend:
+
+```
+CHANGEME! = maestro yoda
+```
+
 ### INFRASTRUCTURE
 
 Conté els següents fitxers:
@@ -71,70 +191,3 @@ Conté els següents fitxers:
 `k8s-platform.tf`: Recursos de kubernetes relatius al clúster, no conté aplicacions d'usuari, si no de plataforma
 
 `k8s-app.tf`: Recursos de kubernetes relatius a aplicacions d'usuaris
-
-### DESPLEGAMENT DE LA INFRAESTRUCTURA
-
-Primer de tot inicialitzar l'entorn de laboratori AWS Academy, un cop inicialitzat copiem les credencials a
-```
-~/.aws/credentials
-```
-
-Accedim via web a la consola de AWS Academy i creem un bucket amb el nom _s3-cloudfpc-state_ per emmagatzemar els .tfstate
-
-Amb el bucket creat podem començar a desplegar la infraestructura
-
-Primer anirem al directori platform/infrastructure
-```
-cd half-marathon-cloud-platform/platform/infrastructure
-```
-
-Inicialitzem la configuració de Terraform
-```
-terraform init
-```
-
-Un cop inicialitzada la configuració, obrirem el fitxer _control.auto.tfvars_. Dins d'aquest fitxer estan definides les variables de control que ens permeten gestionar la infraestructura de manera modular. Ens asegurem que totes estiguin a _false_
-
-Amb totes les variables de control desactivades, executem Terraform
-```
-terraform apply -auto-approve
-```
-
-El primer _terraform apply_ te una limitació. Al intentar validar el nom DNS del balancejador, com es una subzona delegada, si aquesta no esta configurada, es quedara pendent durant 15 minuts fins que Terraform faci time-out. Quan comenci la validació del DNS del alb _aws_acm_certificate_validation.alb-cluster-cert_ esperarem uns minuts i enviarem una señal de interrupt a Terraform (Ctrl + C).
-
-Contactarem amb el gestor de la subzona del DNS per a que la configuri. Necessitarà els NS que amazon ens ha proporcionat, els podem obtindre executant la següent comanda
-```
-terraform output route53-nameservers
-```
-
-Un cop estigui configurada la subzona, podem tornar a executar Terraform
-```
-terraform apply -auto-approve
-```
-
-Amb la infraestructura base desplegada, podem crear els bloc adicionals gestionats per les variables indicades previament. Modifiquem el fitxer _control.auto.tfvars_
-```
-enable-eks          = true
-enable-autoscaling  = true
-enable-alarms       = true
-enable-marathon-app = **false**
-```
-
-Tornem a executar Terraform per desplegar el clúster EKS, les polítiques d'autoescalat i les alarmes de cloudwatch. Pot tardar fins a **10 minuts** en desplegar el clúster
-```
-terraform apply -auto-approve
-```
-
-Amb el cluster desplegat, podem crear els bloc adicionals relacionats amb la aplicació _marathon-app_. Modifiquem el fitxer _control.auto.tfvars_
-```
-enable-eks          = true
-enable-autoscaling  = true
-enable-alarms       = true
-enable-marathon-app = true
-```
-
-Tornem a executar Terraform
-```
-terraform apply -auto-approve
-```
-
