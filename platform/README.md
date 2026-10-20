@@ -168,7 +168,7 @@ Conté els següents fitxers:
 
 `outputs.tf`: Definició de diferents ouputs relacionats, sobretot, amb accessos web
 
-`providers.tf`: Definició i configuració dels _providers_ necessaris per a la configuració, en aquest cas _aws_
+`providers.tf`: Definició i configuració dels _providers_ necessaris per a la configuració, en aquest cas _aws_ i _archive_
 
 `backend.tf`: Configuració del bloc de backend de Terraform, apunta a un s3
 
