@@ -10,7 +10,7 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });   // 10 MB maxim per track
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });   // 50 MB maxim per track
 
 
 router.get("/races", async (req, res) => {
