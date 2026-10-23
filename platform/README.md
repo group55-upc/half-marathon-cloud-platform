@@ -123,7 +123,7 @@ terraform apply -auto-approve
 Finalment, per forçar el desplegament d'Amplify cal publicar algun canvi al repositori. Modificarem la línia següent del README perquè detecti un canvi nou i així desplegui el frontend:
 
 ```
-CHANGEME = maestro yoda
+CHANGEME = sauron
 ```
 
 ### INFRASTRUCTURE
